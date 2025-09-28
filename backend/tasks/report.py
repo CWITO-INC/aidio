@@ -10,7 +10,7 @@ client = OpenAI(
     base_url="https://openrouter.ai/api/v1",
 )
 
-def generate_report():
+def generate_report() -> str:
     try:
         response = client.chat.completions.create(
             model="x-ai/grok-4-fast:free",
@@ -40,3 +40,5 @@ def generate_report():
     file_name = f"reports/report-{now.strftime('%Y-%m-%d_%H-%M-%S')}.txt"
     with open(file_name, "w") as f:
         f.write(report_with_timestamp)
+
+    return report_with_timestamp

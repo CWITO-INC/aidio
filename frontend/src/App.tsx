@@ -1,8 +1,10 @@
 import { useState } from "react";
-import "./App.css";
+import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 function App() {
   const [response, setResponse] = useState("");
+  const [report, setReport] = useState("");
 
   const callBackend = async () => {
     try {
@@ -16,12 +18,28 @@ function App() {
     }
   };
 
+  const getLatestReport = async () => {
+    try {
+      const res = await fetch("http://localhost:8000/latest-report");
+      const data = await res.json();
+      if (data.report) {
+        setReport(data.report);
+      } else {
+        setReport(JSON.stringify(data, null, 2));
+      }
+    } catch (error) {
+      setReport("Error fetching report");
+    }
+  };
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <button onClick={callBackend}>Generate Report</button>
-        <pre>{response}</pre>
-      </header>
+    <div>
+      <button onClick={callBackend}>Generate Report</button>
+      <button onClick={getLatestReport}>Get Latest Report</button>
+      <h2>Last action response:</h2>
+      <Markdown remarkPlugins={[remarkGfm]}>{response}</Markdown>
+      <h2>Latest report:</h2>
+      <Markdown remarkPlugins={[remarkGfm]}>{report}</Markdown>
     </div>
   );
 }
