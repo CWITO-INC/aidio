@@ -57,7 +57,7 @@ def get_tool_response(tool_call):
         "content": json.dumps(tool_result),
     }
 
-def Ω() -> str:
+def generate_report() -> str:
 
     max_iterations = 10
     iteration_count = 0
