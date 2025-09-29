@@ -1,9 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from apscheduler.schedulers.background import BackgroundScheduler
-from report import generate_report
+from tasks.report import generate_report
+from tools.tools import TOOL_MAPPING,TOOL_DEFS
 import os
 import glob
+
+
 
 app = FastAPI()
 
@@ -39,10 +42,16 @@ def get_latest_report():
         content = f.read()
     return {"report": content}
 
-@app.get("/")
-def read_root():
-    return {"Hello": "Worldsss"}
+@app.get("/tools")
+def list_tools():
+    return {"tools": TOOL_DEFS}
 
-@app.get("/items/{item_id}")
-def read_item(item_id: int, q: str|None = None):
-    return {"item_id": item_id, "5": q}
+@app.post("/tools/{tool_name}")
+def invoke_tool(tool_name: str, tool_args: dict):
+    if tool_name not in TOOL_MAPPING:
+        return {"error": f"Tool {tool_name} not found."}
+    try:
+        result = TOOL_MAPPING[tool_name](**tool_args)
+        return {"result": result}
+    except Exception as e:
+        return {"error": str(e)}

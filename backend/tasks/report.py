@@ -4,7 +4,7 @@ from openai import OpenAI
 import os
 from dotenv import load_dotenv
 
-from get_weather import get_weather
+from tools.tools import TOOL_DEFS, TOOL_MAPPING
 
 load_dotenv()
 
@@ -13,32 +13,10 @@ client = OpenAI(
     base_url="https://openrouter.ai/api/v1",
 )
 
-TOOL_MAPPING = {
-    "get_weather": get_weather
-}
-
 def call_llm(msgs):
     response = client.chat.completions.create(
         model="x-ai/grok-4-fast:free",
-        tools=[
-            {
-                "type": "function",
-                "function": {
-                    "name": "get_weather",
-                    "description": "Fetch current weather data for a specified city.",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "city": {
-                                "type": "string",
-                                "description": "Name of the city to get weather for"
-                            }
-                        },
-                        "required": ["city"]
-                    }
-                }
-            }
-        ],
+        tools=TOOL_DEFS,
         messages=msgs
     )
     msgs.append(response.choices[0].message.dict())
@@ -65,11 +43,11 @@ def generate_report() -> str:
     _messages=[
         {
             "role": "system",
-            "content": "You are a helpful assistant that generates weather reports. You can use the get_weather tool to fetch current weather data for specified city. Use the tool as needed to gather information before generating the final report as your last message."
+            "content": "You are a helpful assistant that generates daily reports about various timely and local topics. You should use all the provided tools to gather information for your report. Generate the concise final report as your last message."
         },
         {
             "role": "user",
-            "content": "Generate a short report about the current weather in Helsinki and New York."
+            "content": "It is Monday 29th of September, 2025. Generate a concise report about the current weather in Helsinki and the lunch menu at Unicafe Kumpula."
         }
     ]
 
