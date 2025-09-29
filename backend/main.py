@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from apscheduler.schedulers.background import BackgroundScheduler
-from tasks.report import generate_report
+from report import generate_report
 import os
 import glob
 
@@ -27,11 +27,11 @@ def start_scheduler():
 
 @app.post("/generate-report")
 def trigger_generate_report():
-    return generate_report()
+    return {"report": generate_report() }
 
 @app.get("/latest-report")
 def get_latest_report():
-    list_of_files = glob.glob('reports/*.txt') 
+    list_of_files = glob.glob('reports/*.txt')
     if not list_of_files:
         return {"error": "No reports found."}
     latest_file = max(list_of_files, key=os.path.getctime)

@@ -12,7 +12,7 @@ function App() {
         method: "POST",
       });
       const data = await res.json();
-      setResponse(JSON.stringify(data, null, 2));
+      setResponse(data.report);
     } catch (error) {
       setResponse("Error calling backend");
     }
@@ -22,11 +22,7 @@ function App() {
     try {
       const res = await fetch("http://localhost:8000/latest-report");
       const data = await res.json();
-      if (data.report) {
-        setReport(data.report);
-      } else {
-        setReport(JSON.stringify(data, null, 2));
-      }
+      setReport(data.report);
     } catch (error) {
       setReport("Error fetching report");
     }
