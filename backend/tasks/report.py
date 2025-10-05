@@ -47,7 +47,7 @@ def generate_report() -> str:
         },
         {
             "role": "user",
-            "content": "It is Tuesday 30th of September, 2025. Generate a concise report about the current weather in Helsinki, the lunch menu at Unicafe Kumpula and most important electricity prices."
+            "content": "It is Tuesday 30th of September, 2025. Generate a concise report about the current weather in Helsinki, the lunch menu at Unicafe Kumpula and most important electricity prices. Also give a summary of the recent news."
         }
     ]
 
