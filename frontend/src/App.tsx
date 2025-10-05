@@ -3,11 +3,17 @@ import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Tool } from "./types";
 import { Api } from "./api";
+import { Button } from "./components/ui/button";
+import { ThemeProvider } from "./components/ThemeProvider";
+import { Input } from "./components/ui/input";
+import { NewspaperIcon, SendHorizonalIcon, SendIcon } from "lucide-react";
+import aidio_cat from "@/assets/aidio_cat.jpg";
+import { Spinner } from "./components/ui/spinner";
 
 function App() {
   const [report, setReport] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
   const [tools, setTools] = useState<Tool[]>([]);
-  const [toolResults, setToolResults] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
     const fetchReport = async () => {
@@ -35,31 +41,57 @@ function App() {
 
   const generateReport = async () => {
     try {
+      setIsGenerating(true);
       const data = await Api.post("/generate-report");
       setReport(data.report);
     } catch (error) {
       setReport("Error generating report");
+    } finally {
+      setIsGenerating(false);
     }
   };
 
   console.log("Tools:", tools);
 
   return (
-    <div>
-      <h1>AI Report Generator</h1>
-      <h2>Available tools:</h2>
-      <ul>
-        {tools.map((tool, index) => (
-          <li key={index}>
-            <ToolForm tool={tool} />
-          </li>
-        ))}
-      </ul>
+    <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+      <img src={aidio_cat} alt="AIdio Logo" className="mx-auto fixed top-0 -z-10 w-[100vw]" />
 
-      <button onClick={generateReport}>Generate Report</button>
-      <h2>Latest report:</h2>
-      <Markdown remarkPlugins={[remarkGfm]}>{report}</Markdown>
-    </div>
+      <div className="bg-gradient-to-b from-background/0 via-background to-background/100 min-h-screen">
+        <main className="text-foreground container mx-auto p-16">
+          <h1 className="text-8xl font-bold mb-16 mt-80">AIdio</h1>
+
+          <div className="flex gap-8">
+
+            <section className="my-4 flex-1">
+              <h2 className="text-4xl font-semibold mb-4">Tools</h2>
+              <ul className="space-y-4">
+                {tools.map((tool, index) => (
+                  <li key={index} className="p-4 border rounded backdrop-blur-lg">
+                    <ToolForm tool={tool} />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          
+            <section className="my-4 flex-2">
+              <div className="flex items-center mb-4">
+                <h2 className="text-4xl font-semibold mr-4">Report</h2>
+                <Button variant="outline" className="backdrop-blur-md" onClick={generateReport} disabled={isGenerating}><NewspaperIcon /> Generate new report {isGenerating && <Spinner />}</Button>
+              </div>
+              <article className="p-4 border rounded prose font-serif backdrop-blur-lg">
+                <Markdown remarkPlugins={[remarkGfm]}>{report}</Markdown>
+              </article>
+            </section>
+          </div>
+        </main>
+        <footer className="bg-background p-4 mt-16">
+          <p className="text-center text-sm text-foreground/50">
+            &copy; 2025 AIdio. All rights reserved.
+          </p>
+        </footer>
+      </div>
+    </ThemeProvider>
   );
 }
 
@@ -88,23 +120,20 @@ const ToolForm = ({ tool }: { tool: Tool }) => {
         callTool(tool.function.name, args);
       }}
     >
-      <h3>{tool.function.name}</h3>
+      <h3 className="font-semibold">{tool.function.name}</h3>
       <p>{tool.function.description}</p>
       {Object.entries(tool.function.parameters.properties).map(
         ([paramName, paramDetails]) => (
-          <div key={paramName}>
-            <label>
-              {paramName} ({paramDetails.type}):
-              <input type="text" name={paramName} />
-            </label>
+          <div key={paramName} className="mt-4">
+            <Input type="text" placeholder={`${paramName} (${paramDetails.type})`} name={paramName} />
           </div>
         ),
       )}
-      <button type="submit">Call Tool</button>
+      <Button className="mt-4" variant="outline" type="submit"><SendHorizonalIcon /> Call Tool</Button>
       {result && (
-        <div>
-          <h4>Result:</h4>
-          <pre>{result}</pre>
+        <div className="mt-4 p-4 border rounded">
+          <h4 className="font-semibold">Result:</h4>
+          <p className="text-xs font-mono whitespace-pre-line">{result}</p>
         </div>
       )}
     </form>
