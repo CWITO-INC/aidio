@@ -9,10 +9,12 @@ import { Input } from "./components/ui/input";
 import { NewspaperIcon, SendHorizonalIcon, SendIcon } from "lucide-react";
 import aidio_cat from "@/assets/aidio_cat.jpg";
 import { Spinner } from "./components/ui/spinner";
+import ReportAudioPlayer from "./ReportAudioPlayer";
 
 function App() {
   const [report, setReport] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isGeneratingTTS, setIsGeneratingTTS] = useState(false);
   const [tools, setTools] = useState<Tool[]>([]);
 
   useEffect(() => {
@@ -51,8 +53,6 @@ function App() {
     }
   };
 
-  console.log("Tools:", tools);
-
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
       <img src={aidio_cat} alt="AIdio Logo" className="mx-auto fixed top-0 -z-10 w-[100vw]" />
@@ -77,7 +77,8 @@ function App() {
             <section className="my-4 flex-2">
               <div className="flex items-center mb-4">
                 <h2 className="text-4xl font-semibold mr-4">Report</h2>
-                <Button variant="outline" className="backdrop-blur-md" onClick={generateReport} disabled={isGenerating}><NewspaperIcon /> Generate new report {isGenerating && <Spinner />}</Button>
+                <Button variant="outline" className="backdrop-blur-md mr-4" onClick={generateReport} disabled={isGenerating}><NewspaperIcon /> Generate new report {isGenerating && <Spinner />}</Button>
+                <ReportAudioPlayer />
               </div>
               <article className="p-4 border rounded prose font-serif backdrop-blur-lg">
                 <Markdown remarkPlugins={[remarkGfm]}>{report}</Markdown>
