@@ -21,4 +21,14 @@ export const Api = {
     }
     return response.json();
   },
+  postRaw: async (endpoint: string, body?: any) => {
+    const response = await fetch(`${API_URL}${endpoint}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    return response;
+  }
 };

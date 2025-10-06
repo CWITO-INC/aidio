@@ -79,25 +79,43 @@ def generate_tts(request: TTSRequest):
 @app.post("/tts/report")
 def generate_report_tts():
     """Generate TTS for the latest report."""
-    try:
-        import glob
-        list_of_files = glob.glob('reports/*.txt')
-        if not list_of_files:
-            return {"error": "No reports found."}
-        
-        latest_file = max(list_of_files, key=os.path.getctime)
+    audio_bytes = None
+
+    # Check for latest report
+    import glob
+    list_of_files = glob.glob('reports/*.txt')
+    if not list_of_files:
+        return {"error": "No reports found."}
+    
+    latest_file = max(list_of_files, key=os.path.getctime)
+
+    # Check if audio already exists for this report
+    audio_file_path = latest_file.replace('.txt', '.mp3').replace('reports/', 'reports/audio/')
+    if os.path.exists(audio_file_path):
+        with open(audio_file_path, 'rb') as f:
+            audio_bytes = f.read()
+    else:
+        print("Generating new TTS for report:", latest_file)
         with open(latest_file, 'r') as f:
             content = f.read()
-        
-        audio_bytes = text_to_speech(content)
-        
-        return StreamingResponse(
-            io.BytesIO(audio_bytes),
-            media_type="audio/mpeg",
-            headers={"Content-Disposition": f"attachment; filename=report.mp3"}
-        )
-    except Exception as e:
-        return {"error": str(e)}
+
+        try:
+            audio_bytes = text_to_speech(content)
+
+            # Save audio to file
+            os.makedirs('reports/audio', exist_ok=True)
+            audio_filename = latest_file.replace('.txt', '.mp3').replace('reports/', 'reports/audio/')
+            with open(audio_filename, 'wb') as audio_file:
+                audio_file.write(audio_bytes)
+        except Exception as e:
+            print("Error generating TTS:", e)
+            return {"error": str(e)}
+
+    return StreamingResponse(
+                io.BytesIO(audio_bytes),
+                media_type="audio/mpeg",
+                # headers={"Content-Disposition": f"attachment; filename=report.mp3"}
+            )
 
 @app.get("/tts/voices")
 def list_voices():

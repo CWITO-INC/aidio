@@ -15,7 +15,7 @@ client = OpenAI(
 
 def call_llm(msgs):
     response = client.chat.completions.create(
-        model="x-ai/grok-4-fast:free",
+        model="nvidia/nemotron-nano-9b-v2:free",
         tools=TOOL_DEFS,
         messages=msgs
     )
@@ -47,7 +47,7 @@ def generate_report() -> str:
         },
         {
             "role": "user",
-            "content": "It is Tuesday 30th of September, 2025. Generate a concise report about the current weather in Helsinki, the lunch menu at Unicafe Kumpula and most important electricity prices. Also give a summary of the recent news."
+            "content": "It is Tuesday 6th of October, 2025. Generate a concise report about the current weather in Helsinki, the lunch menu at Unicafe Kumpula and most important electricity prices."
         }
     ]
 
