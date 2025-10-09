@@ -6,7 +6,7 @@ import { Api } from "./api";
 import { Button } from "./components/ui/button";
 import { ThemeProvider } from "./components/ThemeProvider";
 import { Input } from "./components/ui/input";
-import { NewspaperIcon, SendHorizonalIcon, SendIcon } from "lucide-react";
+import { NewspaperIcon, SendHorizonalIcon } from "lucide-react";
 import aidio_cat from "@/assets/aidio_cat.jpg";
 import { Spinner } from "./components/ui/spinner";
 import ReportAudioPlayer from "./ReportAudioPlayer";
@@ -14,7 +14,6 @@ import ReportAudioPlayer from "./ReportAudioPlayer";
 function App() {
   const [report, setReport] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isGeneratingTTS, setIsGeneratingTTS] = useState(false);
   const [tools, setTools] = useState<Tool[]>([]);
 
   useEffect(() => {
@@ -34,7 +33,7 @@ function App() {
       try {
         const data = await Api.get("/tools");
         setTools(data.tools);
-      } catch (error) {
+      } catch (error: unknown) {
         setTools([]);
       }
     };
@@ -54,7 +53,7 @@ function App() {
   };
 
   return (
-    <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+    <>
       <img src={aidio_cat} alt="AIdio Logo" className="mx-auto fixed top-0 -z-10 w-[100vw]" />
 
       <div className="bg-gradient-to-b from-background/0 via-background to-background/100 min-h-screen">
@@ -92,7 +91,7 @@ function App() {
           </p>
         </footer>
       </div>
-    </ThemeProvider>
+    </>
   );
 }
 
