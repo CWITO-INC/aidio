@@ -1,25 +1,25 @@
 import datetime
 import json
-from openai import OpenAI
 import os
 from dotenv import load_dotenv
 
 from tools.tools import TOOL_DEFS, TOOL_MAPPING
+from utils.utils import get_client_and_model
 
 load_dotenv()
 
-client = OpenAI(
-    api_key=os.getenv("OPENROUTER_KEY"),
-    base_url="https://openrouter.ai/api/v1",
-)
+client, model = get_client_and_model()
 
 def call_llm(msgs):
     response = client.chat.completions.create(
-        model="nvidia/nemotron-nano-9b-v2:free",
+        model=model,
         tools=TOOL_DEFS,
         messages=msgs
     )
-    msgs.append(response.choices[0].message.dict())
+    message_dict = response.choices[0].message.dict()
+    # Remove keys with None values, especially if content is None
+    filtered_message = {k: v for k, v in message_dict.items() if v is not None}
+    msgs.append(filtered_message)
     return response
 
 def get_tool_response(tool_call):
@@ -47,7 +47,7 @@ def generate_report() -> str:
         },
         {
             "role": "user",
-            "content": "It is Tuesday 6th of October, 2025. Generate a concise report about the current weather in Helsinki, the lunch menu at Unicafe Kumpula and most important electricity prices."
+            "content": "It is Tuesday 6th of October, 2025. Generate a concise report about the current weather in Helsinki, the lunch menu at Unicafe Kumpula and most important electricity prices. Also give a summary of the recent news."
         }
     ]
 
