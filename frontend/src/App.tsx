@@ -80,7 +80,7 @@ function App() {
                 <Button variant="outline" className="backdrop-blur-md mr-4" onClick={generateReport} disabled={isGenerating}><NewspaperIcon /> Generate new report {isGenerating && <Spinner />}</Button>
                 <ReportAudioPlayer />
               </div>
-              <article className="p-4 border rounded prose font-serif backdrop-blur-lg">
+              <article className="p-4 border rounded prose prose-invert font-serif backdrop-blur-lg">
                 <Markdown remarkPlugins={[remarkGfm]}>{report}</Markdown>
               </article>
             </section>
