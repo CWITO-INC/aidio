@@ -8,6 +8,7 @@ import { ThemeProvider } from "./components/ThemeProvider.tsx";
 import { queryClient } from "./queryClient.ts";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import Layout from "./Layout.tsx";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -15,12 +16,14 @@ createRoot(document.getElementById("root")!).render(
       <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<UserApp />} />
-            <Route path="/dev" element={<DevApp />} />
+            <Route element={<Layout />}>
+              <Route path="/" element={<UserApp />} />
+              <Route path="/dev" element={<DevApp />} />
+            </Route>
           </Routes>
         </BrowserRouter>
       </ThemeProvider>
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
-  </StrictMode>,
+  </StrictMode>
 );

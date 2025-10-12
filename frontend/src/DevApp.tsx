@@ -31,7 +31,6 @@ function App() {
 
       <div className="bg-gradient-to-b from-background/0 via-background to-background/100 min-h-screen">
         <main className="text-foreground container mx-auto p-16">
-          <h1 className="text-8xl font-bold mb-16 mt-80">AIdio</h1>
 
           <div className="flex gap-8">
 
