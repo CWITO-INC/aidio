@@ -1,56 +1,29 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Tool } from "./types";
 import { Api } from "./api";
 import { Button } from "./components/ui/button";
-import { ThemeProvider } from "./components/ThemeProvider";
 import { Input } from "./components/ui/input";
 import { NewspaperIcon, SendHorizonalIcon } from "lucide-react";
 import aidio_cat from "@/assets/aidio_cat.jpg";
-import { Spinner } from "./components/ui/spinner";
 import ReportAudioPlayer from "./ReportAudioPlayer";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { Spinner } from "./components/ui/spinner";
 
 function App() {
-  const [report, setReport] = useState("");
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [tools, setTools] = useState<Tool[]>([]);
+  const { data: reportData } = useQuery<{ report: string }>({ queryKey: ["/latest-report"] });
+  const { data: toolsData, isSuccess: isToolsSuccess } = useQuery<{ tools: Tool[] }>({ queryKey: ["/tools"] });
 
-  useEffect(() => {
-    const fetchReport = async () => {
-      try {
-        const data = await Api.get("/latest-report");
-        setReport(data.report);
-      } catch (error) {
-        setReport("Error fetching report");
-      }
-    };
-    fetchReport();
-  }, []);
-
-  useEffect(() => {
-    const fetchTools = async () => {
-      try {
-        const data = await Api.get("/tools");
-        setTools(data.tools);
-      } catch (error: unknown) {
-        setTools([]);
-      }
-    };
-    fetchTools();
-  }, []);
-
-  const generateReport = async () => {
-    try {
-      setIsGenerating(true);
-      const data = await Api.post("/generate-report");
-      setReport(data.report);
-    } catch (error) {
-      setReport("Error generating report");
-    } finally {
-      setIsGenerating(false);
+  const { mutateAsync: generateReport, isPending: isGenerating } = useMutation({
+    mutationFn: async () => {
+      const response = await Api.post<{ report: string }>("/generate-report");
+      return response;
+    },
+    onSuccess: (data, _, __, { client }) => {
+      client.setQueryData(["/latest-report"], data);
     }
-  };
+  })
 
   return (
     <>
@@ -65,7 +38,7 @@ function App() {
             <section className="my-4 flex-1">
               <h2 className="text-4xl font-semibold mb-4">Tools</h2>
               <ul className="space-y-4">
-                {tools.map((tool, index) => (
+                {isToolsSuccess && toolsData.tools.map((tool, index) => (
                   <li key={index} className="p-4 border rounded backdrop-blur-lg">
                     <ToolForm tool={tool} />
                   </li>
@@ -76,11 +49,11 @@ function App() {
             <section className="my-4 flex-2">
               <div className="flex items-center mb-4">
                 <h2 className="text-4xl font-semibold mr-4">Report</h2>
-                <Button variant="outline" className="backdrop-blur-md mr-4" onClick={generateReport} disabled={isGenerating}><NewspaperIcon /> Generate new report {isGenerating && <Spinner />}</Button>
+                <Button variant="outline" className="backdrop-blur-md mr-4" onClick={() => generateReport()} disabled={isGenerating}><NewspaperIcon /> Generate new report {isGenerating && <Spinner />}</Button>
                 <ReportAudioPlayer />
               </div>
               <article className="p-4 border rounded prose prose-invert font-serif backdrop-blur-lg">
-                <Markdown remarkPlugins={[remarkGfm]}>{report}</Markdown>
+                <Markdown remarkPlugins={[remarkGfm]}>{reportData?.report}</Markdown>
               </article>
             </section>
           </div>

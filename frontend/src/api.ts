@@ -8,7 +8,7 @@ export const Api = {
     }
     return response.json();
   },
-  post: async (endpoint: string, body?: any) => {
+  post: async <T>(endpoint: string, body?: any) => {
     const response = await fetch(`${API_URL}${endpoint}`, {
       method: "POST",
       headers: {
@@ -19,7 +19,7 @@ export const Api = {
     if (!response.ok) {
       throw new Error(`Error posting to ${endpoint}: ${response.statusText}`);
     }
-    return response.json();
+    return response.json() as Promise<T>;
   },
   postRaw: async (endpoint: string, body?: any) => {
     const response = await fetch(`${API_URL}${endpoint}`, {
