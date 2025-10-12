@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Button } from "./components/ui/button";
-import { Api } from "./api";
-import { Spinner } from "./components/ui/spinner";
+import { Button } from "./ui/button";
+import { Api } from "../api";
+import { Spinner } from "./ui/spinner";
 import { AudioWaveformIcon } from "lucide-react";
 
 const ReportAudioPlayer: React.FC = () => {
@@ -44,8 +44,8 @@ const ReportAudioPlayer: React.FC = () => {
         });
       });
 
-    } catch (e: any) {
-      setError(e.message || "Failed to fetch audio");
+    } catch (e: unknown) {
+      setError((e as Error).message || "Failed to fetch audio");
     } finally {
       setLoading(false);
     }

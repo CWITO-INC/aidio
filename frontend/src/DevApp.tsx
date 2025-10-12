@@ -7,7 +7,7 @@ import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
 import { NewspaperIcon, SendHorizonalIcon } from "lucide-react";
 import aidio_cat from "@/assets/aidio_cat.jpg";
-import ReportAudioPlayer from "./ReportAudioPlayer";
+import ReportAudioPlayer from "./components/ReportAudioPlayer";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Spinner } from "./components/ui/spinner";
 
