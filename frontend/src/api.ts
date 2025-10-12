@@ -8,7 +8,8 @@ export const Api = {
     }
     return response.json();
   },
-  post: async (endpoint: string, body?: any) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  post: async <T>(endpoint: string, body?: any) => {
     const response = await fetch(`${API_URL}${endpoint}`, {
       method: "POST",
       headers: {
@@ -19,8 +20,9 @@ export const Api = {
     if (!response.ok) {
       throw new Error(`Error posting to ${endpoint}: ${response.statusText}`);
     }
-    return response.json();
+    return response.json() as Promise<T>;
   },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   postRaw: async (endpoint: string, body?: any) => {
     const response = await fetch(`${API_URL}${endpoint}`, {
       method: "POST",

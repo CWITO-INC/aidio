@@ -1,15 +1,15 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Tool } from "./types";
 import { Api } from "./api";
 import { Button } from "./components/ui/button";
-import { ThemeProvider } from "./components/ThemeProvider";
 import { Input } from "./components/ui/input";
 import { NewspaperIcon, SendHorizonalIcon } from "lucide-react";
 import aidio_cat from "@/assets/aidio_cat.jpg";
-import { Spinner } from "./components/ui/spinner";
 import ReportAudioPlayer from "./ReportAudioPlayer";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { Spinner } from "./components/ui/spinner";
 import { Select, SelectItem } from "./components/ui/select";
 
 interface YleNewsArticle {
@@ -31,11 +31,9 @@ interface YleNewsState {
 }
 
 function App() {
-  const [report, setReport] = useState("");
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [tools, setTools] = useState<Tool[]>([]);
-
-  const [yleNewsState, setYleNewsState] = useState<YleNewsState>({
+  const { data: reportData } = useQuery<{ report: string }>({ queryKey: ["/latest-report"] });
+  const { data: toolsData, isSuccess: isToolsSuccess } = useQuery<{ tools: Tool[] }>({ queryKey: ["/tools"] });
+    const [yleNewsState, setYleNewsState] = useState<YleNewsState>({
     categories: [],
     selectedCategory: null,
     articles: [],
@@ -43,68 +41,29 @@ function App() {
     articleContent: null,
   });
 
-  useEffect(() => {
-    const fetchReport = async () => {
-      try {
-        const latestReportData = await Api.get("/latest-report");
-          setReport(latestReportData.report);
-      } catch (error) {
-        console.error("Error fetching report:", error);
-        setReport("Error fetching report");
-      }
-    };
-    fetchReport();
-  }, []);
-
-  useEffect(() => {
-    const fetchTools = async () => {
-      try {
-        const data = await Api.get("/tools");
-        setTools(data.tools);
-
-        const yleNewsTool = data.tools.find((tool: Tool) => tool.function.name === "yle_news");
-        if (yleNewsTool && yleNewsTool.function.parameters.properties.category) {
-          setYleNewsState(prevState => ({
-            ...prevState,
-            categories: yleNewsTool.function.parameters.properties.category.enum || [],
-          }));
-        }
-      } catch (error) {
-        console.error("Error fetching tools:", error);
-        setTools([]);
-      }
-    };
-    fetchTools();
-  }, []);
-
-  const generateReport = async () => {
-    try {
-      setIsGenerating(true);
-      const data = await Api.post("/generate-report");
-      console.log(data)
-      setReport(data.report);
-    } catch (error) {
-      console.error("Error generating report:", error);
-      setReport("Error generating report");
-    } finally {
-      setIsGenerating(false);
+  const { mutateAsync: generateReport, isPending: isGenerating } = useMutation({
+    mutationFn: async () => {
+      const response = await Api.post<{ report: string }>("/generate-report");
+      return response;
+    },
+    onSuccess: (data, _, __, { client }) => {
+      client.setQueryData(["/latest-report"], data);
     }
-  };
+  })
 
   return (
-    <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+    <>
       <img src={aidio_cat} alt="AIdio Logo" className="mx-auto fixed top-0 -z-10 w-[100vw]" />
 
       <div className="bg-gradient-to-b from-background/0 via-background to-background/100 min-h-screen">
         <main className="text-foreground container mx-auto p-16">
-          <h1 className="text-8xl font-bold mb-16 mt-80">AIdio</h1>
 
           <div className="flex gap-8">
 
             <section className="my-4 flex-1">
               <h2 className="text-4xl font-semibold mb-4">Tools</h2>
               <ul className="space-y-4">
-                {tools.map((tool, index) => (
+                {isToolsSuccess && toolsData.tools.map((tool, index) => (
                   <li key={index} className="p-4 border rounded backdrop-blur-lg">
                     <ToolForm
                       tool={tool}
@@ -119,11 +78,11 @@ function App() {
             <section className="my-4 flex-2">
               <div className="flex items-center mb-4">
                 <h2 className="text-4xl font-semibold mr-4">Report</h2>
-                <Button variant="outline" className="backdrop-blur-md mr-4" onClick={generateReport} disabled={isGenerating}><NewspaperIcon /> Generate new report {isGenerating && <Spinner />}</Button>
+                <Button variant="outline" className="backdrop-blur-md mr-4" onClick={() => generateReport()} disabled={isGenerating}><NewspaperIcon /> Generate new report {isGenerating && <Spinner />}</Button>
                 <ReportAudioPlayer />
               </div>
-              <article className="p-4 border rounded prose prose-invert font-serif backdrop-blur-lg [&_a]:text-foreground [&_a]:no-underline [&_a]:cursor-pointer [&_a]:hover:underline">
-                <Markdown remarkPlugins={[remarkGfm]}>{report}</Markdown>
+              <article className="p-4 border rounded prose prose-invert font-serif backdrop-blur-lg">
+                <Markdown remarkPlugins={[remarkGfm]}>{reportData?.report}</Markdown>
               </article>
             </section>
           </div>
@@ -134,7 +93,7 @@ function App() {
           </p>
         </footer>
       </div>
-    </ThemeProvider>
+    </>
   );
 }
 
@@ -165,22 +124,17 @@ const ToolForm = ({
     try {
       console.log("Calling tool:", toolName, args);
       const data = await Api.post(`/tools/${toolName}`, args);
-      setResult(data.result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setResult((data as { result: any }).result);
 
       if (toolName === "yle_news") {
         if (args.category) {
           setYleNewsState(prevState => ({
             ...prevState,
-            articles: data.result.articles || [],
+            articles: (data as { result: { articles: YleNewsArticle[] } }).result.articles || [],
             selectedArticleUrl: null,
             articleContent: null,
             selectedCategory: args.category as string,
-          }));
-        } else if (args.article_url) {
-          setYleNewsState(prevState => ({
-            ...prevState,
-            articleContent: data.result.article_content || "",
-            selectedArticleUrl: args.article_url as string,
           }));
         }
       }
