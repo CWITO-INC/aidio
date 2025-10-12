@@ -1,17 +1,27 @@
-from __future__ import annotations
-
 import json
 import re
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 from xml.etree import ElementTree as ET
 from tools.Tool import Tool
+from utils.cache import get_cached_response, set_cached_response
 
 import requests
+from bs4 import BeautifulSoup
 
-_RSS_URL = "https://yle.fi/rss/uutiset/tuoreimmat"
-
+RSS_FEEDS = {
+    "latest": "https://yle.fi/rss/uutiset/tuoreimmat",
+    "main": "https://yle.fi/rss/uutiset/paauutiset",
+    "most_read": "https://yle.fi/rss/uutiset/luetuimmat",
+    "domestic": "https://yle.fi/rss/t/18-34837/fi",
+    "international": "https://yle.fi/rss/t/18-34953/fi",
+    "economy": "https://yle.fi/rss/t/18-19274/fi",
+    "politics": "https://yle.fi/rss/t/18-38033/fi",
+    "culture": "https://yle.fi/rss/t/18-150067/fi",
+    "sports": "https://yle.fi/rss/urheilu",
+    "yle_news_english": "https://yle.fi/rss/news",
+}
 
 def _http_get(url: str, timeout: float = 10.0) -> str:
     """Perform GET request and return XML text."""
@@ -22,6 +32,32 @@ def _http_get(url: str, timeout: float = 10.0) -> str:
     resp = requests.get(url, headers=headers, timeout=timeout)
     resp.raise_for_status()
     return resp.text
+
+
+def _fetch_article_content(url: str) -> str:
+    """Fetches the content of a given URL and extracts the main article text."""
+    try:
+        response = requests.get(url, timeout=10.0)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.text, 'html.parser')
+
+        # Attempt to find the main article content. This might need refinement
+        # depending on the structure of the target websites.
+        article_text = []
+        for paragraph in soup.find_all('p'):
+            article_text.append(paragraph.get_text())
+        
+        # Fallback if no paragraphs are found or if a more general approach is needed
+        if not article_text:
+            main_content = soup.find('main') or soup.find('article') or soup.find('body')
+            if main_content:
+                article_text = [p.get_text() for p in main_content.find_all('p')]
+            
+        return "\n\n".join(article_text) if article_text else "Could not extract article content."
+    except requests.exceptions.RequestException as e:
+        return f"Error fetching article from {url}: {e}"
+    except Exception as e:
+        return f"Error parsing article from {url}: {e}"
 
 
 def _text(elem: Optional[ET.Element]) -> Optional[str]:
@@ -56,7 +92,7 @@ def _guess_datetime(text: Optional[str]) -> Optional[str]:
     return None
 
 
-def _parse_rss(xml_text: str) -> Dict[str, Any]:
+def _parse_rss(xml_text: str, rss_url: str) -> Dict[str, Any]:
     """Convert RSS XML to normalized Python dict."""
     root = ET.fromstring(xml_text)
     channel = root.find("channel")
@@ -69,7 +105,7 @@ def _parse_rss(xml_text: str) -> Dict[str, Any]:
         "description": _text(channel.find("description")),
         "language": _text(channel.find("language")),
         "last_build_at": _guess_datetime(_text(channel.find("lastBuildDate"))),
-        "url": _RSS_URL,
+        "url": rss_url,
     }
 
     items: List[Dict[str, Any]] = []
@@ -96,38 +132,64 @@ def _parse_rss(xml_text: str) -> Dict[str, Any]:
 
 @dataclass
 class NewsTool(Tool):
-    """Fetch the latest Yle “Tuoreimmat” news and return JSON."""
+    """Fetch the latest Yle “Tuoreimmat” news and return JSON, or fetch and return the content of a specific news article URL."""
 
-    name: str = "yle_latest_news"
+    name: str = "yle_news"
     description: str = (
         "Fetch Yle's latest news (https://yle.fi/rss/uutiset/tuoreimmat) "
         "and return structured JSON with title, link, summary, categories, "
-        "and publication time."
+        "and publication time. Can also fetch the full content of a specific "
+        "news article if a URL is provided."
     )
     parameter_schema: Dict[str, Any] = None
 
     def __post_init__(self) -> None:
-        # No arguments needed
-        self.parameter_schema = {"type": "object", "properties": {}}
+        self.parameter_schema = {
+            "type": "object",
+            "properties": {
+                "category": {
+                    "type": "string",
+                    "description": "Optional: The news category to fetch. Defaults to 'latest'.",
+                    "enum": list(RSS_FEEDS.keys()),
+                    "default": "latest",
+                },
+                "article_url": {
+                    "type": "string",
+                    "description": "Optional: The URL of a news article to fetch its full content. This parameter is primarily for internal use or direct API calls, not for frontend selection.",
+                }
+            },
+        }
 
     def _invoke(self, **kwargs) -> str:
+        # If article_url is provided, it means the frontend is directly asking for article content
+        # This bypasses the category selection and cache for RSS feeds.
+        article_url = kwargs.get("article_url")
+        if article_url:
+            return _fetch_article_content(article_url)
+
+        category = kwargs.get("category", "latest")
+        rss_url = RSS_FEEDS.get(category, RSS_FEEDS["latest"])
+
+        cached_data = get_cached_response(self.name, cache_key=category)
+        if cached_data:
+            return json.dumps(cached_data, ensure_ascii=False, indent=2)
+
         """Fetch the RSS feed and return structured JSON text."""
         try:
-            xml_text = _http_get(_RSS_URL, timeout=10.0)
-            parsed = _parse_rss(xml_text)
+            xml_text = _http_get(rss_url, timeout=10.0)
+            parsed = _parse_rss(xml_text, rss_url)
+            output = {
+                "source": parsed["source"],
+                "fetched_at": datetime.now(timezone.utc).isoformat(),
+                "count": len(parsed["items"]),
+                "items": parsed["items"],
+            }
+            set_cached_response(self.name, output, cache_key=category)
+            return json.dumps(output, ensure_ascii=False, indent=2)
         except Exception as e:
             result = {
-                "source": {"url": _RSS_URL},
+                "source": {"url": rss_url},
                 "fetched_at": datetime.now(timezone.utc).isoformat(),
                 "error": {"type": e.__class__.__name__, "message": str(e)},
             }
             return json.dumps(result, ensure_ascii=False, indent=2)
-
-        output = {
-            "source": parsed["source"],
-            "fetched_at": datetime.now(timezone.utc).isoformat(),
-            "count": len(parsed["items"]),
-            "items": parsed["items"],
-        }
-
-        return json.dumps(output, ensure_ascii=False, indent=2)
