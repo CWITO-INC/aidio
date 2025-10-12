@@ -50,7 +50,7 @@ def generate_report() -> str:
         },
         {
             "role": "user",
-            "content": "It is Tuesday 6th of October, 2025. Generate a concise report about the current weather in Helsinki, the lunch menu at Unicafe Kumpula and most important electricity prices. Also give a summary of the recent news."
+            "content": "It is Tuesday 6th of October, 2025. Generate a concise report about the current weather in Helsinki, the lunch menu at Unicafe Kumpula and most important electricity prices. Also give a summary of the news, the news should be in markdown link format [Short description of the article](url to arcticle), each article should be on it's own line"
         }
     ]
 
