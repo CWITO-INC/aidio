@@ -2,8 +2,9 @@ from dataclasses import dataclass
 import json
 import requests
 from typing import Dict, Any, Optional
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from tools.Tool import Tool
+from utils.cache import get_cached_response, set_cached_response
 
 class UnicafeTool(Tool):
     name: str = "get_unicafe_menu"
@@ -26,17 +27,18 @@ class UnicafeTool(Tool):
         "Viikki",
     ]
 
-    _cached_response = None
-
     def _invoke(self, **kwargs):
         location = kwargs.get("location")
         base_url = "https://unicafe.fi/wp-json/swiss/v1/restaurants/?lang=en"
 
-        if self._cached_response is None:
+        all_restaurants_data = get_cached_response(self.name)
+
+        if not all_restaurants_data:
             try:
                 response = requests.get(base_url)
                 response.raise_for_status()
-                self._cached_response = response.json()
+                all_restaurants_data = response.json()
+                set_cached_response(self.name, all_restaurants_data)
                 print("Fetched new unicafe menu data")
             except requests.exceptions.RequestException as e:
                 err_msg = f"Error fetching unicafe menu data: {e}"
@@ -45,7 +47,7 @@ class UnicafeTool(Tool):
 
         # Filter restaurants by location
         restaurants = []
-        for restaurant_data in self._cached_response:
+        for restaurant_data in all_restaurants_data:
             restaurant_location = list(map(lambda l: l["name"], restaurant_data['location']))[0]
             if location == restaurant_location:
 

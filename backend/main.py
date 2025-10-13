@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from apscheduler.schedulers.background import BackgroundScheduler
 from tasks.report import generate_report
-from tools.tools import TOOL_MAPPING,TOOL_DEFS
+from tools.tools import TOOL_MAPPING, TOOL_DEFS
 from fastapi.responses import StreamingResponse
 from services.tts import text_to_speech, get_available_voices
 from pydantic import BaseModel
@@ -13,9 +13,11 @@ import os
 
 app = FastAPI()
 
+
 class TTSRequest(BaseModel):
     text: str
     voice: str = "Rachel"
+
 
 origins = [
     "http://localhost:5173",
@@ -29,19 +31,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.on_event("startup")
 def start_scheduler():
     scheduler = BackgroundScheduler()
     scheduler.add_job(generate_report, 'interval', minutes=60)
     scheduler.start()
 
+
 @app.post("/generate-report")
 def trigger_generate_report():
-    return {"report": generate_report() }
+    return {"report": generate_report()}
+
 
 @app.get("/latest-report")
 def get_latest_report():
     list_of_files = glob.glob('reports/*.txt')
+    print(list_of_files)
     if not list_of_files:
         return {"error": "No reports found."}
     latest_file = max(list_of_files, key=os.path.getctime)
@@ -49,9 +55,11 @@ def get_latest_report():
         content = f.read()
     return {"report": content}
 
+
 @app.get("/tools")
 def list_tools():
     return {"tools": TOOL_DEFS}
+
 
 @app.post("/tools/{tool_name}")
 def invoke_tool(tool_name: str, tool_args: dict):
@@ -62,6 +70,7 @@ def invoke_tool(tool_name: str, tool_args: dict):
         return {"result": result}
     except Exception as e:
         return {"error": str(e)}
+
 
 @app.post("/tts")
 def generate_tts(request: TTSRequest):
@@ -76,6 +85,7 @@ def generate_tts(request: TTSRequest):
     except Exception as e:
         return {"error": str(e)}
 
+
 @app.post("/tts/report")
 def generate_report_tts():
     """Generate TTS for the latest report."""
@@ -86,11 +96,12 @@ def generate_report_tts():
     list_of_files = glob.glob('reports/*.txt')
     if not list_of_files:
         return {"error": "No reports found."}
-    
+
     latest_file = max(list_of_files, key=os.path.getctime)
 
     # Check if audio already exists for this report
-    audio_file_path = latest_file.replace('.txt', '.mp3').replace('reports/', 'reports/audio/')
+    audio_file_path = latest_file.replace(
+        '.txt', '.mp3').replace('reports/', 'reports/audio/')
     if os.path.exists(audio_file_path):
         with open(audio_file_path, 'rb') as f:
             audio_bytes = f.read()
@@ -104,7 +115,8 @@ def generate_report_tts():
 
             # Save audio to file
             os.makedirs('reports/audio', exist_ok=True)
-            audio_filename = latest_file.replace('.txt', '.mp3').replace('reports/', 'reports/audio/')
+            audio_filename = latest_file.replace(
+                '.txt', '.mp3').replace('reports/', 'reports/audio/')
             with open(audio_filename, 'wb') as audio_file:
                 audio_file.write(audio_bytes)
         except Exception as e:
@@ -112,10 +124,11 @@ def generate_report_tts():
             return {"error": str(e)}
 
     return StreamingResponse(
-                io.BytesIO(audio_bytes),
-                media_type="audio/mpeg",
-                # headers={"Content-Disposition": f"attachment; filename=report.mp3"}
-            )
+        io.BytesIO(audio_bytes),
+        media_type="audio/mpeg",
+        # headers={"Content-Disposition": f"attachment; filename=report.mp3"}
+    )
+
 
 @app.get("/tts/voices")
 def list_voices():

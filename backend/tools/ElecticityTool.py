@@ -3,6 +3,7 @@ import json
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from tools.Tool import Tool
+from utils.cache import get_cached_response, set_cached_response
 
 TIMEZONE = ZoneInfo("Europe/Helsinki")
 
@@ -14,6 +15,10 @@ class ElectricityTool(Tool):
                          "required": [] }
 
     def _invoke(self, **kwargs):
+        cached_data = get_cached_response(self.name)
+        if cached_data:
+            return json.dumps(cached_data, ensure_ascii=False, indent=2)
+
         url = "https://api.porssisahko.net/v1/latest-prices.json"
 
         try:
@@ -47,5 +52,7 @@ class ElectricityTool(Tool):
             "timezone": str(TIMEZONE),
             "upcoming_hours": upcoming_prices
         }
+
+        set_cached_response(self.name, result)
 
         return json.dumps(result)

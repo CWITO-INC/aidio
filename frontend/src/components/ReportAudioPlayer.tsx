@@ -24,7 +24,8 @@ const ReportAudioPlayer: React.FC = () => {
         try {
           const data = await res.json();
           if (data?.error) msg = data.error;
-        } catch {
+        } catch (jsonError) {
+          console.error("Error parsing JSON error response:", jsonError);
           // ignore JSON parse errors
         }
         throw new Error(msg);
@@ -39,6 +40,7 @@ const ReportAudioPlayer: React.FC = () => {
           setPlaying(true);
           audioRef.current?.addEventListener("ended", () => setPlaying(false));
         }).catch((e) => {
+          console.error("Autoplay failed:", e);
           // Autoplay blocked; user must click Play
           console.log("Autoplay failed", e);
         });

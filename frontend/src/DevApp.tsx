@@ -10,10 +10,36 @@ import aidio_cat from "@/assets/aidio_cat.jpg";
 import ReportAudioPlayer from "./components/ReportAudioPlayer";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Spinner } from "./components/ui/spinner";
+import { Select, SelectItem } from "./components/ui/select";
+
+interface YleNewsArticle {
+  title: string;
+  url: string;
+  summary: string | null;
+  id: string | null;
+  published_at: string | null;
+  author: string | null;
+  categories: string[] | null;
+}
+
+interface YleNewsState {
+  categories: string[];
+  selectedCategory: string | null;
+  articles: YleNewsArticle[];
+  selectedArticleUrl: string | null;
+  articleContent: string | null;
+}
 
 function App() {
   const { data: reportData } = useQuery<{ report: string }>({ queryKey: ["/latest-report"] });
   const { data: toolsData, isSuccess: isToolsSuccess } = useQuery<{ tools: Tool[] }>({ queryKey: ["/tools"] });
+    const [yleNewsState, setYleNewsState] = useState<YleNewsState>({
+    categories: [],
+    selectedCategory: null,
+    articles: [],
+    selectedArticleUrl: null,
+    articleContent: null,
+  });
 
   const { mutateAsync: generateReport, isPending: isGenerating } = useMutation({
     mutationFn: async () => {
@@ -39,7 +65,11 @@ function App() {
               <ul className="space-y-4">
                 {isToolsSuccess && toolsData.tools.map((tool, index) => (
                   <li key={index} className="p-4 border rounded backdrop-blur-lg">
-                    <ToolForm tool={tool} />
+                    <ToolForm
+                      tool={tool}
+                      yleNewsState={yleNewsState}
+                      setYleNewsState={setYleNewsState}
+                    />
                   </li>
                 ))}
               </ul>
@@ -67,15 +97,49 @@ function App() {
   );
 }
 
-const ToolForm = ({ tool }: { tool: Tool }) => {
+const ToolForm = ({
+  tool,
+  yleNewsState,
+  setYleNewsState,
+}: {
+  tool: Tool;
+  yleNewsState: {
+    categories: string[];
+    selectedCategory: string | null;
+    articles: YleNewsArticle[];
+    selectedArticleUrl: string | null;
+    articleContent: string | null;
+  };
+  setYleNewsState: React.Dispatch<React.SetStateAction<{
+    categories: string[];
+    selectedCategory: string | null;
+    articles: YleNewsArticle[];
+    selectedArticleUrl: string | null;
+    articleContent: string | null;
+  }>>;
+}) => {
   const [result, setResult] = useState<string | null>(null);
 
-  const callTool = async (toolName: string, args: { [key: string]: any }) => {
+  const callTool = async (toolName: string, args: Record<string, unknown>) => {
     try {
       console.log("Calling tool:", toolName, args);
       const data = await Api.post(`/tools/${toolName}`, args);
-      setResult(data.result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setResult((data as { result: any }).result);
+
+      if (toolName === "yle_news") {
+        if (args.category) {
+          setYleNewsState(prevState => ({
+            ...prevState,
+            articles: (data as { result: { articles: YleNewsArticle[] } }).result.articles || [],
+            selectedArticleUrl: null,
+            articleContent: null,
+            selectedCategory: args.category as string,
+          }));
+        }
+      }
     } catch (error) {
+      console.error("Error calling tool:", error);
       setResult("Error calling tool");
     }
   };
@@ -85,7 +149,7 @@ const ToolForm = ({ tool }: { tool: Tool }) => {
       onSubmit={(e) => {
         e.preventDefault();
         const formData = new FormData(e.currentTarget);
-        const args: { [key: string]: any } = {};
+        const args: Record<string, unknown> = {};
         formData.forEach((value, key) => {
           args[key] = value;
         });
@@ -94,15 +158,76 @@ const ToolForm = ({ tool }: { tool: Tool }) => {
     >
       <h3 className="font-semibold">{tool.function.name}</h3>
       <p>{tool.function.description}</p>
-      {Object.entries(tool.function.parameters.properties).map(
-        ([paramName, paramDetails]) => (
-          <div key={paramName} className="mt-4">
-            <Input type="text" placeholder={`${paramName} (${paramDetails.type})`} name={paramName} />
-          </div>
-        ),
+      {tool.function.name === "yle_news" ? (
+        <div className="mt-4">
+          <Select
+            onValueChange={(value) => {
+              console.log("Selected category:", value);
+              setYleNewsState(prevState => ({ ...prevState, selectedCategory: value }));
+              callTool(tool.function.name, { category: value });
+            }}
+            value={yleNewsState.selectedCategory || ""}
+            className="w-[180px]"
+          >
+            <option value="" disabled>Select a category</option>
+            {yleNewsState.categories.map((category: string) => (
+              <SelectItem key={category} value={category}>
+                {category}
+              </SelectItem>
+            ))}
+          </Select>
+          <Button className="mt-4" variant="outline" type="button" onClick={() => {
+            if (yleNewsState.selectedCategory) {
+              callTool(tool.function.name, { category: yleNewsState.selectedCategory });
+            }
+          }}><SendHorizonalIcon /> Call Tool</Button>
+
+          {result && yleNewsState.articles.length > 0 && (
+            <div className="mt-4 p-4 border rounded">
+              <h4 className="font-semibold">News Articles:</h4>
+              <ul className="space-y-2">
+                {yleNewsState.articles.map((article: YleNewsArticle, index: number) => (
+                  <li key={index}>
+                    <a
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        console.log("Article title clicked:", article.url);
+                        setYleNewsState(prevState => ({ ...prevState, selectedArticleUrl: article.url }));
+                        callTool(tool.function.name, { article_url: article.url });
+                      }}
+                      className="text-primary underline-offset-4 hover:underline cursor-pointer hover:text-primary-foreground"
+                    >
+                      {article.title}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {yleNewsState.selectedArticleUrl && yleNewsState.articleContent && (
+            <div className="mt-4 p-4 border rounded">
+              <h4 className="font-semibold">Article Content:</h4>
+              <div className="[&_a]:text-blue-400 [&_a]:cursor-pointer [&_a]:hover:underline">
+                <Markdown remarkPlugins={[remarkGfm]}>{yleNewsState.articleContent}</Markdown>
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        Object.entries(tool.function.parameters.properties).map(
+          ([paramName, paramDetails]) => (
+            <div key={paramName} className="mt-4">
+              <Input type="text" placeholder={`${paramName} (${paramDetails.type})`} name={paramName} />
+            </div>
+          ),
+        )
       )}
-      <Button className="mt-4" variant="outline" type="submit"><SendHorizonalIcon /> Call Tool</Button>
-      {result && (
+      {tool.function.name !== "yle_news" && (
+        <Button className="mt-4" variant="outline" type="submit"><SendHorizonalIcon /> Call Tool</Button>
+      )}
+      {result && tool.function.name !== "yle_news" && (
         <div className="mt-4 p-4 border rounded">
           <h4 className="font-semibold">Result:</h4>
           <p className="text-xs font-mono whitespace-pre-line">{result}</p>
