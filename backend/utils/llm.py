@@ -9,27 +9,18 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# -------------------------
-# Environment (read once)
-# -------------------------
-
 OPENROUTER_API = "https://openrouter.ai/api/v1"
 OPENROUTER_KEY = os.getenv("OPENROUTER_KEY")
+OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL")
 
 # Gemini via OpenAI-compatible endpoint
 GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
 GEMINI_KEY = os.getenv("GEMINI_KEY")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-lite")
-
-# Preference: "gemini" or "openrouter"
 LLM_PREFER = os.getenv("LLM_PREFER", "gemini").lower()
 
-# -------------------------
-# OpenRouter model selection/cache
-# -------------------------
-
 _cached_model: Optional[str] = None
-_blocked_models: Dict[str, float] = {}  # {model_id: timestamp_blocked}
+_blocked_models: Dict[str, float] = {}
 
 
 def _is_free_model(entry: dict) -> bool:
@@ -82,12 +73,9 @@ def get_best_free_model(force_provider: Optional[str] = None) -> str:
 
 def mark_model_blocked(model_id: str) -> None:
     _blocked_models[model_id] = time.time()
-    print(f"[OpenRouter] Model '{model_id}' marked as blocked (rate/quota/deprecated).")
+    print(
+        f"[OpenRouter] Model '{model_id}' marked as blocked (rate/quota/deprecated).")
 
-
-# -------------------------
-# Clients
-# -------------------------
 
 def get_openrouter_client_and_model(
     force_provider: Optional[str] = None,
@@ -106,7 +94,8 @@ def get_openrouter_client_and_model(
             "X-Title": "My Python LLM App",
         },
     )
-    model = get_best_free_model(force_provider=force_provider)
+    model = OPENROUTER_MODEL or get_best_free_model(
+        force_provider=force_provider)
     return client, model
 
 
@@ -171,7 +160,8 @@ def chat_with_rate_limit(
       - Else raises RateLimitExceeded with reset timestamp so caller can queue/switch.
     """
     try:
-        resp = client.chat.completions.create(model=model, messages=messages, **kwargs)
+        resp = client.chat.completions.create(
+            model=model, messages=messages, **kwargs)
         return resp
     except Exception as e:
         text = str(e).lower()
@@ -193,8 +183,10 @@ def chat_with_rate_limit(
                 wait_s = max(0, int(reset_ms / 1000) - int(time.time()))
                 wait_s = min(wait_s, max_wait_seconds)
                 if wait_s > 0:
-                    human = datetime.fromtimestamp(time.time() + wait_s).isoformat()
-                    print(f"[OpenRouter] Rate limit hit. Waiting {wait_s}s (until {human})...")
+                    human = datetime.fromtimestamp(
+                        time.time() + wait_s).isoformat()
+                    print(
+                        f"[OpenRouter] Rate limit hit. Waiting {wait_s}s (until {human})...")
                     time.sleep(wait_s)
                     return client.chat.completions.create(
                         model=model, messages=messages, **kwargs
@@ -212,13 +204,11 @@ def chat_with_rate_limit(
         raise
 
 
-# -------------------------
-# Smart selector (your request)
-# -------------------------
-
 def get_client_and_model(
-    prefer: Optional[str] = None,  # "gemini" or "openrouter"; overrides env if provided
-    force_provider: Optional[str] = None,  # bias OpenRouter model selection, e.g., "deepseek"
+    # "gemini" or "openrouter"; overrides env if provided
+    prefer: Optional[str] = None,
+    # bias OpenRouter model selection, e.g., "deepseek"
+    force_provider: Optional[str] = None,
 ) -> Tuple[OpenAI, str]:
     """
     Returns a single OpenAI-compatible client and model, preferring provider
@@ -231,13 +221,15 @@ def get_client_and_model(
         try:
             return get_gemini_client_and_model()
         except Exception as e:
-            print(f"[Gemini] Preferred failed: {e}. Falling back to OpenRouter...")
+            print(
+                f"[Gemini] Preferred failed: {e}. Falling back to OpenRouter...")
 
     if choice == "openrouter" and OPENROUTER_KEY:
         try:
             return get_openrouter_client_and_model(force_provider=force_provider)
         except Exception as e:
-            print(f"[OpenRouter] Preferred failed: {e}. Falling back to Gemini...")
+            print(
+                f"[OpenRouter] Preferred failed: {e}. Falling back to Gemini...")
 
     # Fallback to whichever is available
     if GEMINI_KEY:
@@ -249,4 +241,5 @@ def get_client_and_model(
     if OPENROUTER_KEY:
         return get_openrouter_client_and_model(force_provider=force_provider)
     print("KEY IS: ", GEMINI_KEY)
-    raise RuntimeError("No available provider. Set GEMINI_KEY and/or OPENROUTER_KEY.")
+    raise RuntimeError(
+        "No available provider. Set GEMINI_KEY and/or OPENROUTER_KEY.")
