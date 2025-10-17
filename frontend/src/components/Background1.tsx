@@ -15,7 +15,7 @@ export const Background1 = () => {
 }
 
 const Scene = () => {
-  const group = useRef();
+  const group = useRef<THREE.Group>(null!);
 
   useFrame((state, delta) => {
     if (group.current) {
@@ -34,9 +34,9 @@ const Scene = () => {
   )
 }
 
-function Swarm({ count, dummy = new THREE.Object3D() }) {
-  const mesh = useRef();
-  const light = useRef();
+function Swarm({ count, dummy = new THREE.Object3D() }: { count: number; dummy?: THREE.Object3D }) {
+  const mesh = useRef<THREE.InstancedMesh>(null!);
+  const light = useRef<THREE.PointLight>(null!);
   const particles = useMemo(() => {
     const temp = [];
     for (let i = 0; i < count; i++) {
@@ -57,6 +57,7 @@ function Swarm({ count, dummy = new THREE.Object3D() }) {
       0
     );
     particles.forEach((particle, i) => {
+      // eslint-disable-next-line prefer-const
       let { t, factor, speed, xFactor, yFactor, zFactor } = particle;
       t = particle.t += speed / 20;
       const a = Math.cos(t) + Math.sin(t * 1) / 10;
@@ -86,11 +87,11 @@ function Swarm({ count, dummy = new THREE.Object3D() }) {
   return (
     <>
       <pointLight ref={light} distance={100} intensity={20} color="lightblue">
-        {/* <mesh scale={[1, 1, 6]}>
+        {/* <mesh scale={[1, 1, 6]>
           <dodecahedronGeometry args={[4, 0]} />
         </mesh> */}
       </pointLight>
-      <instancedMesh ref={mesh} args={[null, null, count]}>
+      <instancedMesh ref={mesh} args={[undefined, undefined, count]}>
         <dodecahedronGeometry args={[1, 0]} />
         <meshStandardMaterial color="#ffffff" roughness={1.0} />
       </instancedMesh>

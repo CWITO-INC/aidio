@@ -8,7 +8,7 @@ export const Api = {
     }
     return response.json();
   },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   post: async <T>(endpoint: string, body?: any) => {
     const response = await fetch(`${API_URL}${endpoint}`, {
       method: "POST",
@@ -22,7 +22,7 @@ export const Api = {
     }
     return response.json() as Promise<T>;
   },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   postRaw: async (endpoint: string, body?: any) => {
     const response = await fetch(`${API_URL}${endpoint}`, {
       method: "POST",

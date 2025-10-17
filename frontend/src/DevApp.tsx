@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Tool } from "./types";
@@ -33,13 +33,25 @@ interface YleNewsState {
 function App() {
   const { data: reportData } = useQuery<{ report: string }>({ queryKey: ["/latest-report"] });
   const { data: toolsData, isSuccess: isToolsSuccess } = useQuery<{ tools: Tool[] }>({ queryKey: ["/tools"] });
-    const [yleNewsState, setYleNewsState] = useState<YleNewsState>({
+  const [yleNewsState, setYleNewsState] = useState<YleNewsState>({
     categories: [],
     selectedCategory: null,
     articles: [],
     selectedArticleUrl: null,
     articleContent: null,
   });
+
+  // Effect to update categories once toolsData is available
+  useEffect(() => {
+    if (isToolsSuccess && toolsData) {
+      const yleNewsTool = toolsData.tools.find(tool => tool.function.name === "yle_news");
+      if (yleNewsTool && yleNewsTool.function.parameters && yleNewsTool.function.parameters.properties && yleNewsTool.function.parameters.properties.category) {
+        const categories = yleNewsTool.function.parameters.properties.category.enum || [];
+        setYleNewsState(prevState => ({ ...prevState, categories: categories as string[] }));
+      }
+    }
+  }, [isToolsSuccess, toolsData]);
+
 
   const { mutateAsync: generateReport, isPending: isGenerating } = useMutation({
     mutationFn: async () => {
@@ -124,7 +136,7 @@ const ToolForm = ({
     try {
       console.log("Calling tool:", toolName, args);
       const data = await Api.post(`/tools/${toolName}`, args);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       setResult((data as { result: any }).result);
 
       if (toolName === "yle_news") {

@@ -9,6 +9,7 @@ export type Tool = {
         [key: string]: {
           type: string;
           description: string;
+          enum?: string[]; // Add optional enum property
         };
       };
       required: string[];
