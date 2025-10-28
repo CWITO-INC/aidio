@@ -3,6 +3,7 @@ from tools.WeatherTool import WeatherTool
 from tools.ElecticityTool import ElectricityTool
 from tools.NewsTool import NewsTool
 from tools.DadJokeTool import DadJokeTool 
+from tools.StadissaTool import StadissaTool 
 from tools.Tool import Tool
 
 TOOLS: list[Tool] = [
@@ -10,7 +11,8 @@ TOOLS: list[Tool] = [
     UnicafeTool(),
     ElectricityTool(),
     NewsTool(),
-    DadJokeTool() 
+    DadJokeTool(), 
+    StadissaTool()
 ]
 
 TOOL_MAPPING = {tool.name: tool.invoke for tool in TOOLS}

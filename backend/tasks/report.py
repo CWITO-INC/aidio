@@ -81,6 +81,24 @@ def generate_report() -> str:
 
     messages[1]["content"] += news_links_for_llm
 
+    # Fetch Stadissa events
+    stadissa_tool = TOOL_MAPPING["StadissaTool"]
+    stadissa_result_str = stadissa_tool(category="musiikki", city="helsinki")
+    stadissa_result = json.loads(stadissa_result_str)
+
+    stadissa_events_for_llm = ""
+    if stadissa_result.get("status") == "success":
+        stadissa_events_for_llm += "\n\nHere is a summary of events from Stadissa.fi:\n"
+        stadissa_events_for_llm += stadissa_result.get("summary", "No summary available.")
+        if stadissa_result.get("interesting_events"):
+            stadissa_events_for_llm += "\n\nParticularly interesting events:\n"
+            for event in stadissa_result["interesting_events"]:
+                stadissa_events_for_llm += f"- {event.get('title')} at {event.get('venue')} ({event.get('url')})\n"
+    else:
+        stadissa_events_for_llm += f"\n\nNo events found from Stadissa.fi: {stadissa_result.get("message", "Unknown error")}"
+
+    messages[1]["content"] += stadissa_events_for_llm
+
     try:
         while iteration_count < max_iterations:
             iteration_count += 1

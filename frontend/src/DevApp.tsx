@@ -170,31 +170,70 @@ const ToolForm = ({
     >
       <h3 className="font-semibold">{tool.function.name}</h3>
       <p>{tool.function.description}</p>
-      {tool.function.name === "yle_news" ? (
+      {tool.function.name === "yle_news" || tool.function.name === "StadissaTool" ? (
         <div className="mt-4">
-          <Select
-            onValueChange={(value) => {
-              console.log("Selected category:", value);
-              setYleNewsState(prevState => ({ ...prevState, selectedCategory: value }));
-              callTool(tool.function.name, { category: value });
-            }}
-            value={yleNewsState.selectedCategory || ""}
-            className="w-[180px]"
-          >
-            <option value="" disabled>Select a category</option>
-            {yleNewsState.categories.map((category: string) => (
-              <SelectItem key={category} value={category}>
-                {category}
-              </SelectItem>
-            ))}
-          </Select>
-          <Button className="mt-4" variant="outline" type="button" onClick={() => {
-            if (yleNewsState.selectedCategory) {
-              callTool(tool.function.name, { category: yleNewsState.selectedCategory });
-            }
-          }}><SendHorizonalIcon /> Call Tool</Button>
+          {tool.function.name === "yle_news" && (
+            <Select
+              onValueChange={(value) => {
+                console.log("Selected category:", value);
+                setYleNewsState(prevState => ({ ...prevState, selectedCategory: value }));
+                callTool(tool.function.name, { category: value });
+              }}
+              value={yleNewsState.selectedCategory || ""}
+              className="w-[180px]"
+            >
+              <option value="" disabled>Select a category</option>
+              {yleNewsState.categories.map((category: string) => (
+                <SelectItem key={category} value={category}>
+                  {category}
+                </SelectItem>
+              ))}
+            </Select>
+          )}
 
-          {result && yleNewsState.articles.length > 0 && (
+          {tool.function.name === "StadissaTool" && (
+            <>
+              {tool.function.parameters.properties.category && (
+                <div className="mt-4">
+                  <Select
+                    onValueChange={(value) => {
+                      console.log("Selected Stadissa category:", value);
+                      // This will be handled by the form's onSubmit
+                    }}
+                    name="category" // Important for form data
+                    className="w-[180px]"
+                  >
+                    <option value="" disabled>Select a category</option>
+                    {(tool.function.parameters.properties.category.enum as string[]).map((category: string) => (
+                      <SelectItem key={category} value={category}>
+                        {category}
+                      </SelectItem>
+                    ))}
+                  </Select>
+                </div>
+              )}
+              {tool.function.parameters.properties.city && (
+                <div className="mt-4">
+                  <Select
+                    onValueChange={(value) => {
+                      console.log("Selected Stadissa city:", value);
+                      // This will be handled by the form's onSubmit
+                    }}
+                    name="city" // Important for form data
+                    className="w-[180px]"
+                  >
+                    <option value="" disabled>Select a city</option>
+                    {(tool.function.parameters.properties.city.enum as string[]).map((city: string) => (
+                      <SelectItem key={city} value={city}>
+                        {city}
+                      </SelectItem>
+                    ))}
+                  </Select>
+                </div>
+              )}
+            </>
+          )}
+          {result && tool.function.name === "yle_news" && yleNewsState.articles.length > 0 && (
             <div className="mt-4 p-4 border rounded">
               <h4 className="font-semibold">News Articles:</h4>
               <ul className="space-y-2">
@@ -218,13 +257,20 @@ const ToolForm = ({
             </div>
           )}
 
-          {yleNewsState.selectedArticleUrl && yleNewsState.articleContent && (
+          {result && tool.function.name === "yle_news" && yleNewsState.selectedArticleUrl && yleNewsState.articleContent && (
             <div className="mt-4 p-4 border rounded">
               <h4 className="font-semibold">Article Content:</h4>
               <div className="[&_a]:text-blue-400 [&_a]:cursor-pointer [&_a]:hover:underline">
                 <Markdown remarkPlugins={[remarkGfm]}>{yleNewsState.articleContent}</Markdown>
               </div>
             </div>
+          )}
+          {tool.function.name === "yle_news" && (
+            <Button className="mt-4" variant="outline" type="button" onClick={() => {
+              if (yleNewsState.selectedCategory) {
+                callTool(tool.function.name, { category: yleNewsState.selectedCategory });
+              }
+            }}><SendHorizonalIcon /> Call Tool</Button>
           )}
         </div>
       ) : (
