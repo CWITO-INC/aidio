@@ -67,8 +67,7 @@ class StadissaAPI:
         try:
             headers = {"Cookie": "qc_cmp_consent=1;"}  # Generic consent cookie
             crawl_result = await self.crawl4ai_service.crawl(url, headers=headers)
-            logger.warning(
-                f"Crawl4AIService crawl_result keys: {crawl_result.keys() if crawl_result else 'None'}")
+
             if crawl_result and "html" in crawl_result:
                 return extract_event_data(crawl_result["html"], self.base_url)
             else:
@@ -126,9 +125,12 @@ class StadissaTool(Tool):
                 category=category, date=current_date))
             print("Fetched events:", events)
             if events:
+                # Limit to 10 events for LLM processing
+                events_for_llm_processing = events[:10]
+
                 # Format events for LLM
                 event_strings = []
-                for event in events:
+                for event in events_for_llm_processing:
                     event_strings.append(
                         f"- {event.get('title')} at {event.get('venue')} ({event.get('url')})")
                 events_for_llm = "\n".join(event_strings)
@@ -153,7 +155,8 @@ class StadissaTool(Tool):
                     "status": "success",
                     "summary": summary,
                     "count": len(events),
-                    "filters": {"category": category, "city": city}
+                    "filters": {"category": category, "city": city},
+                    "events": events # Include all fetched events in the result
                 }
             else:
                 result = {
