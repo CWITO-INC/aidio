@@ -10,7 +10,8 @@ import aidio_cat from "@/assets/aidio_cat.jpg";
 import ReportAudioPlayer from "./components/ReportAudioPlayer";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Spinner } from "./components/ui/spinner";
-import { Select, SelectItem } from "./components/ui/select";
+import { Select } from "./components/ui/select";
+import ToolSelect from "./components/ToolSelect";
 
 interface YleNewsArticle {
   title: string;
@@ -131,6 +132,9 @@ const ToolForm = ({
   }>>;
 }) => {
   const [result, setResult] = useState<string | null>(null);
+  const [stadissaState, setStadissaState] = useState({
+    selectedCategory: null as string | null,
+  });
 
   const callTool = async (toolName: string, args: Record<string, unknown>) => {
     try {
@@ -170,31 +174,42 @@ const ToolForm = ({
     >
       <h3 className="font-semibold">{tool.function.name}</h3>
       <p>{tool.function.description}</p>
-      {tool.function.name === "yle_news" ? (
+      {tool.function.name === "yle_news" || tool.function.name === "stadissa_tool" ? (
         <div className="mt-4">
-          <Select
-            onValueChange={(value) => {
-              console.log("Selected category:", value);
-              setYleNewsState(prevState => ({ ...prevState, selectedCategory: value }));
-              callTool(tool.function.name, { category: value });
-            }}
-            value={yleNewsState.selectedCategory || ""}
-            className="w-[180px]"
-          >
-            <option value="" disabled>Select a category</option>
-            {yleNewsState.categories.map((category: string) => (
-              <SelectItem key={category} value={category}>
-                {category}
-              </SelectItem>
-            ))}
-          </Select>
-          <Button className="mt-4" variant="outline" type="button" onClick={() => {
-            if (yleNewsState.selectedCategory) {
-              callTool(tool.function.name, { category: yleNewsState.selectedCategory });
-            }
-          }}><SendHorizonalIcon /> Call Tool</Button>
+          {tool.function.name === "yle_news" && (
+            <>
+              <ToolSelect
+                label="Select a category"
+                options={yleNewsState.categories}
+                onValueChange={(value) => {
+                  setYleNewsState(prevState => ({ ...prevState, selectedCategory: value }));
+                  callTool(tool.function.name, { category: value });
+                }}
+                name="category"
+                value={yleNewsState.selectedCategory}
+              />
+            </>
+          )}
 
-          {result && yleNewsState.articles.length > 0 && (
+          {tool.function.name === "stadissa_tool" && (
+            <>
+              {tool.function.parameters.properties.category && (
+                <>
+                  <ToolSelect
+                    label="Select a category"
+                    options={(tool.function.parameters.properties.category.enum as string[])}
+                    onValueChange={(value) => {
+                      setStadissaState(prevState => ({ ...prevState, selectedCategory: value }));
+                      callTool(tool.function.name, { category: value });
+                    }}
+                    name="category"
+                    value={stadissaState.selectedCategory}
+                  />
+                </>
+              )}
+            </>
+          )}
+          {result && tool.function.name === "yle_news" && yleNewsState.articles.length > 0 && (
             <div className="mt-4 p-4 border rounded">
               <h4 className="font-semibold">News Articles:</h4>
               <ul className="space-y-2">
@@ -204,7 +219,6 @@ const ToolForm = ({
                       href="#"
                       onClick={(e) => {
                         e.preventDefault();
-                        console.log("Article title clicked:", article.url);
                         setYleNewsState(prevState => ({ ...prevState, selectedArticleUrl: article.url }));
                         callTool(tool.function.name, { article_url: article.url });
                       }}
@@ -218,13 +232,20 @@ const ToolForm = ({
             </div>
           )}
 
-          {yleNewsState.selectedArticleUrl && yleNewsState.articleContent && (
+          {result && tool.function.name === "yle_news" && yleNewsState.selectedArticleUrl && yleNewsState.articleContent && (
             <div className="mt-4 p-4 border rounded">
               <h4 className="font-semibold">Article Content:</h4>
               <div className="[&_a]:text-blue-400 [&_a]:cursor-pointer [&_a]:hover:underline">
                 <Markdown remarkPlugins={[remarkGfm]}>{yleNewsState.articleContent}</Markdown>
               </div>
             </div>
+          )}
+          {tool.function.name === "yle_news" && (
+            <Button className="mt-4" variant="outline" type="button" onClick={() => {
+              if (yleNewsState.selectedCategory) {
+                callTool(tool.function.name, { category: yleNewsState.selectedCategory });
+              }
+            }}><SendHorizonalIcon /> Call Tool</Button>
           )}
         </div>
       ) : (

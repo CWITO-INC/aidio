@@ -6,3 +6,5 @@ python-dotenv>=0.19.0
 requests>=2.26.0
 elevenlabs
 beautifulsoup4>=4.12.2
+lxml>=4.9.0
+crawl4ai

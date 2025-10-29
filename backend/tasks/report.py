@@ -59,7 +59,8 @@ def generate_report() -> str:
                 f"It is {today_str}. Generate a concise report about the current weather in Helsinki, "
                 "the lunch menu at Unicafe Kumpula and most important electricity prices. "
                 "Also give a summary of the news, the news should be in markdown link format "
-                "[Short description of the article](url to article), each article should be on its own line."
+                "[Short description of the article](url to article), each article should be on its own line. "
+                "Additionally, include a summary of events from Stadissa.fi, highlighting key events."
             )
         }
     ]
@@ -81,11 +82,31 @@ def generate_report() -> str:
 
     messages[1]["content"] += news_links_for_llm
 
+    # Fetch Stadissa events
+    stadissa_tool = TOOL_MAPPING["stadissa_tool"]
+    stadissa_result_str = stadissa_tool(category="musiikki", city="helsinki")
+    stadissa_result = json.loads(stadissa_result_str)
+
+    stadissa_events_for_llm = ""
+    if stadissa_result.get("status") == "success":
+        stadissa_events_for_llm += "\n\nHere is a summary of events from Stadissa.fi:\n"
+        stadissa_events_for_llm += stadissa_result.get(
+            "summary", "No summary available.")
+        if stadissa_result.get("events"):
+            stadissa_events_for_llm += "\n\nFull list of events:\n"
+            for event in stadissa_result["events"][:5]:  # Limit to 5 events
+                stadissa_events_for_llm += f"- {event.get('title')} at {event.get('venue')} ({event.get('url')})\n"
+    else:
+        stadissa_events_for_llm += f"\n\nNo events found from Stadissa.fi: {stadissa_result.get("message", "Unknown error")}"
+
+    messages[1]["content"] += stadissa_events_for_llm
+
     try:
         while iteration_count < max_iterations:
             iteration_count += 1
             resp = call_llm(messages)
-            print(f"Iteration {iteration_count}: {resp.choices[0].message.content}")
+            print(
+                f"Iteration {iteration_count}: {resp.choices[0].message.content}")
             tool_calls = resp.choices[0].message.tool_calls or []
             if not tool_calls:
                 break
@@ -93,7 +114,8 @@ def generate_report() -> str:
             for tool_call in tool_calls:
                 tool_response_message = get_tool_response(tool_call)
                 messages.append(tool_response_message)
-                print(f"Tool {tool_call.function.name} response: {tool_response_message['content']}")
+                print(
+                    f"Tool {tool_call.function.name} response: {tool_response_message['content']}")
 
         if iteration_count >= max_iterations:
             print("Warning: Maximum iterations reached")
