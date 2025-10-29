@@ -49,16 +49,13 @@ class StadissaAPI:
         self.crawl4ai_service = Crawl4AIService()
         self.base_url = "https://www.stadissa.fi"
 
-    async def get_events(self, category: str = None, date: str = None) -> List[Dict]:
+    async def get_events(self, category: str = None) -> List[Dict]:
         url = self.base_url
 
         params = []
         if category:
             category_slug = category.lower().replace(" ", "-").replace("&", "ja")
             params.append(f"category={category_slug}")
-
-        if date:
-            params.append(f"date={date}")
 
         if params:
             url += "?" + "&".join(params)
@@ -89,7 +86,7 @@ class StadissaTool(Tool):
         self.api = StadissaAPI()
         self.available_categories = [
             "musiikki", "urheilu", "teatteri & taide", "muut menot"]
-        self.available_cities = ["helsinki"]
+        self.available_cities = []
 
         self.parameter_schema: Dict[str, Any] = {
             "type": "object",
@@ -98,17 +95,12 @@ class StadissaTool(Tool):
                     "type": "string",
                     "description": "Filter by event category",
                     "enum": self.available_categories
-                },
-                "city": {
-                    "type": "string",
-                    "description": "Filter by city",
-                    "enum": self.available_cities
                 }
             },
             "required": []
         }
 
-    def _invoke(self, category: Optional[str] = None, city: Optional[str] = None) -> str:
+    def _invoke(self, category: Optional[str] = None) -> str:
         """
         Tool function for AI agents to get Stadissa events and summarize them.
 
@@ -119,10 +111,9 @@ class StadissaTool(Tool):
         Returns:
             JSON string of event summary for easy parsing
         """
-        # Generate a cache key based on category and city
+        # Generate a cache key based on category
         cache_key_parts = []
         if category: cache_key_parts.append(f"category_{category}")
-        if city: cache_key_parts.append(f"city_{city}")
         cache_key = "_".join(cache_key_parts) if cache_key_parts else "all_events"
 
         cached_result = get_cached_response(self.name, cache_key=cache_key)
@@ -166,14 +157,14 @@ class StadissaTool(Tool):
                     "status": "success",
                     "summary": summary,
                     "count": len(events),
-                    "filters": {"category": category, "city": city},
+                    "filters": {"category": category},
                     "events": events # Include all fetched events in the result
                 }
             else:
                 result = {
                     "status": "no_events",
                     "message": "No events found matching your request",
-                    "filters": {"category": category, "city": city}
+                    "filters": {"category": category}
                 }
 
             set_cached_response(self.name, result, cache_key=cache_key)
@@ -183,6 +174,6 @@ class StadissaTool(Tool):
             error_result = {
                 "status": "error",
                 "message": f"Error processing events or generating summary: {str(e)}",
-                "filters": {"category": category, "city": city}
+                "filters": {"category": category}
             }
             return json.dumps(error_result)
