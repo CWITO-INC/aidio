@@ -83,7 +83,7 @@ def generate_report() -> str:
     messages[1]["content"] += news_links_for_llm
 
     # Fetch Stadissa events
-    stadissa_tool = TOOL_MAPPING["StadissaTool"]
+    stadissa_tool = TOOL_MAPPING["stadissa_tool"]
     stadissa_result_str = stadissa_tool(category="musiikki", city="helsinki")
     stadissa_result = json.loads(stadissa_result_str)
 
