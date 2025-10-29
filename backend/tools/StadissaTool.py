@@ -11,6 +11,7 @@ from tools.Tool import Tool
 import asyncio
 from bs4 import BeautifulSoup
 from services.crawl4ai_service import Crawl4AIService
+from utils.cache import get_cached_response, set_cached_response
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -81,7 +82,7 @@ class StadissaAPI:
 
 
 class StadissaTool(Tool):
-    name: str = "StadissaTool"
+    name: str = "stadissa_tool"
     description: str = "A tool to fetch events from Stadissa.fi based on category and city filters and summarize them."
 
     def __init__(self):
@@ -119,6 +120,17 @@ class StadissaTool(Tool):
         Returns:
             JSON string of event summary for easy parsing
         """
+        # Generate a cache key based on category and city
+        cache_key_parts = []
+        if category: cache_key_parts.append(f"category_{category}")
+        if city: cache_key_parts.append(f"city_{city}")
+        cache_key = "_".join(cache_key_parts) if cache_key_parts else "all_events"
+
+        cached_result = get_cached_response(self.name, cache_key=cache_key)
+        if cached_result:
+            logger.info(f"Cache hit for StadissaTool with key: {cache_key}")
+            return json.dumps(cached_result, ensure_ascii=False, indent=2)
+
         try:
             current_date = datetime.now().strftime("%Y-%m-%d")
             events = asyncio.run(self.api.get_events(
@@ -165,6 +177,7 @@ class StadissaTool(Tool):
                     "filters": {"category": category, "city": city}
                 }
 
+            set_cached_response(self.name, result, cache_key=cache_key)
             return json.dumps(result, ensure_ascii=False, indent=2)
 
         except Exception as e:
