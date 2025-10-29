@@ -4,7 +4,6 @@ import time
 from datetime import datetime, timedelta
 import re
 from typing import List, Dict, Optional, Any
-import pandas as pd
 from urllib.parse import urljoin, urlparse
 import logging
 from tools.Tool import Tool
