@@ -84,7 +84,7 @@ def generate_report() -> str:
 
     # Fetch Stadissa events
     stadissa_tool = TOOL_MAPPING["stadissa_tool"]
-    stadissa_result_str = stadissa_tool(category="musiikki", city="helsinki")
+    stadissa_result_str = stadissa_tool(category="musiikki")
     stadissa_result = json.loads(stadissa_result_str)
 
     stadissa_events_for_llm = ""

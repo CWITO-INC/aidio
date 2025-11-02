@@ -122,9 +122,8 @@ class StadissaTool(Tool):
             return json.dumps(cached_result, ensure_ascii=False, indent=2)
 
         try:
-            current_date = datetime.now().strftime("%Y-%m-%d")
             events = asyncio.run(self.api.get_events(
-                category=category, date=current_date))
+                category=category))
             print("Fetched events:", events)
             if events:
                 # Limit to 10 events for LLM processing
