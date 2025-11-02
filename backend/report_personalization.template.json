@@ -2,11 +2,12 @@
     "city": "Helsinki",
     "campus": "Kumpula",
     "include_tools": [
-        "weather",
-        "unicafe",
-        "electricity",
-        "news",
-        "events"
+        "get_weather",
+        "get_unicafe_menu",
+        "get_electricity_prices",
+        "yle_news",
+        "get_dad_joke",
+        "stadissa_tool"
     ],
     "interests": [
         "music",

@@ -18,13 +18,19 @@ interface TempInputs {
   interests: string;
 }
 
-const PersonalizationEditor: React.FC = () => {
+interface PersonalizationEditorProps {
+  onClose?: () => void;
+}
+
+const PersonalizationEditor: React.FC<PersonalizationEditorProps> = ({ onClose }) => {
   const [prefs, setPrefs] = useState<Preferences | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showInfo, setShowInfo] = useState(false);
   const [availableTools, setAvailableTools] = useState<string[]>([]);
+  const [toolsOpen, setToolsOpen] = useState(false);
+  const toolsDropdownRef = React.useRef<HTMLDivElement | null>(null);
   const [tempInputs, setTempInputs] = useState<TempInputs>({
     include_tools: "",
     interests: "",
@@ -61,28 +67,39 @@ const PersonalizationEditor: React.FC = () => {
     fetchPrefs();
   }, []);
 
-  useEffect(() => {
-    // Fetch available tools for info panel
-    let cancelled = false;
-    Api.get("/tools").then((data) => {
+useEffect(() => {
+  // Fetch available tools for info panel
+  let cancelled = false;
+  Api.get("/tools")
+    .then((data) => {
       if (cancelled) return;
-      const toolNames = (data?.tools || []).map((t: any) => t.function?.name || t.name).filter(Boolean);
-      // Map internal tool names to friendly labels
-      const mapping: Record<string, string> = {
-        get_weather: "weather",
-        get_unicafe_menu: "unicafe",
-        get_electricity_prices: "electricity",
-        yle_news: "news",
-        get_dad_joke: "dad joke",
-        stadissa_tool: "events",
-      };
-      const friendly = Array.from(new Set(toolNames.map((n: string) => mapping[n] || null).filter(Boolean)));
-      setAvailableTools(friendly as string[]);
-    }).catch(() => {
+      const tools = data?.tools || [];
+      const toolNames = tools
+        .map((t: any) => t?.function?.name || t?.name)
+        .filter(Boolean);
+      const unique = Array.from(new Set(toolNames));
+      setAvailableTools(unique);
+    })
+    .catch(() => {
       setAvailableTools([]);
     });
-    return () => { cancelled = true };
-  }, []);
+  return () => {
+    cancelled = true;
+  };
+}, []);
+
+  // Close tools dropdown on outside click
+  useEffect(() => {
+    if (!toolsOpen) return;
+    const onClick = (e: MouseEvent) => {
+      if (!toolsDropdownRef.current) return;
+      if (!toolsDropdownRef.current.contains(e.target as Node)) {
+        setToolsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, [toolsOpen]);
 
   
 
@@ -113,6 +130,8 @@ const PersonalizationEditor: React.FC = () => {
       await Api.post("/personalization", prefs);
       // re-fetch to get normalized values
       await fetchPrefs();
+      setShowInfo(false);
+      onClose?.();
     } catch (e: any) {
       setError(e.message || "Failed to save personalization");
     } finally {
@@ -123,7 +142,7 @@ const PersonalizationEditor: React.FC = () => {
   if (!prefs) return <div>No preferences found.</div>;
 
   return (
-    <div className="mt-4 p-4 border rounded backdrop-blur-lg">
+  <div className="mt-4 p-4 border rounded backdrop-blur-lg w-[640px] mx-auto overflow-x-hidden break-words">
       <div className="flex items-center justify-start gap-2 mb-2">
         <h3 className="font-semibold">Report Personalization</h3>
         <Button
@@ -149,12 +168,55 @@ const PersonalizationEditor: React.FC = () => {
         </div>
 
         <div>
-          <label className="block text-sm">Include Tools (comma separated)</label>
-          <Input 
-            value={tempInputs.include_tools}
-            onChange={(e) => setTempInputs(prev => ({ ...prev, include_tools: e.target.value }))}
-            onBlur={(e) => onListChange("include_tools", e.target.value)}
-          />
+          <label className="block text-sm mb-1">Include Tools</label>
+          <div className="relative" ref={toolsDropdownRef}>
+            <button
+              type="button"
+              className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs text-left focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+              onClick={() => setToolsOpen((o) => !o)}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <span className="whitespace-normal break-words">
+                  {Array.isArray(prefs.include_tools) && prefs.include_tools.length > 0
+                    ? prefs.include_tools.join(", ")
+                    : "Select tools"}
+                </span>
+                <span className="text-muted-foreground flex-shrink-0 mt-0.5">▾</span>
+              </div>
+            </button>
+
+            {toolsOpen && (
+              <div className="absolute z-50 mt-1 w-full rounded-md border bg-background p-2 shadow-lg">
+                {availableTools.length === 0 && (
+                  <div className="text-sm text-muted-foreground px-2 py-1">No tools available</div>
+                )}
+                {availableTools.map((toolName) => {
+                  const selected = (prefs.include_tools || []).includes(toolName);
+                  return (
+                    <label
+                      key={toolName}
+                      className="flex cursor-pointer items-center gap-2 rounded px-2 py-1 text-sm hover:bg-accent"
+                    >
+                      <input
+                        type="checkbox"
+                        className="accent-primary"
+                        checked={selected}
+                        onChange={(e) => {
+                          const current = new Set(prefs.include_tools || []);
+                          if (e.target.checked) current.add(toolName);
+                          else current.delete(toolName);
+                          const next = Array.from(current);
+                          setPrefs((p) => (p ? { ...p, include_tools: next } : { include_tools: next }));
+                          setTempInputs((prev) => ({ ...prev, include_tools: next.join(", ") }));
+                        }}
+                      />
+                      <span>{toolName}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
 
         <div>
@@ -180,22 +242,22 @@ const PersonalizationEditor: React.FC = () => {
           <div className="flex items-start justify-between mb-2">
             <div>
               <h4 className="font-semibold">What you can include</h4>
-              <p className="text-sm">Choose what kinds of content you want in your report. Click an item to add it to your preferences.</p>
+              <p className="text-sm">Choose what kinds of content you want in your report.</p>
             </div>
             <button onClick={() => setShowInfo(false)} className="ml-4 text-sm px-2 py-1 rounded bg-background/80">Close</button>
           </div>
 
           <ul className="list-disc ml-5 mb-3">
-            {availableTools.includes("weather") && <li className="mb-1"><button className="text-primary underline" onClick={() => { mergeListField("include_tools", "weather"); setShowInfo(false); }}>Weather</button> — Current conditions and temperatures for your city.</li>}
-            {availableTools.includes("unicafe") && <li className="mb-1"><button className="text-primary underline" onClick={() => { mergeListField("include_tools", "unicafe"); setShowInfo(false); }}>Unicafe</button> — Today's lunch menu at the selected campus.</li>}
-            {availableTools.includes("electricity") && <li className="mb-1"><button className="text-primary underline" onClick={() => { mergeListField("include_tools", "electricity"); setShowInfo(false); }}>Electricity</button> — Important upcoming electricity spot prices (summary).</li>}
-            {availableTools.includes("news") && <li className="mb-1"><button className="text-primary underline" onClick={() => { mergeListField("include_tools", "news"); setShowInfo(false); }}>News</button> — Headlines as short markdown links.</li>}
-            {availableTools.includes("events") && <li className="mb-1"><button className="text-primary underline" onClick={() => { mergeListField("include_tools", "events"); setShowInfo(false); }}>Events</button> — Local events and a short summary.</li>}
-            {availableTools.includes("dad joke") && <li className="mb-1"><button className="text-primary underline" onClick={() => { mergeListField("include_tools", "dad joke"); setShowInfo(false); }}>Dad joke</button> — A light humorous one-liner to include.</li>}
+            <li className="mb-1"><span className="font-medium">Weather</span> — Current conditions and temperatures for your city.</li>
+            <li className="mb-1"><span className="font-medium">Unicafe</span> — Today's lunch menu at the selected campus.</li>
+            <li className="mb-1"><span className="font-medium">Electricity</span> — Important upcoming electricity spot prices (summary).</li>
+            <li className="mb-1"><span className="font-medium">News</span> — Headlines as short markdown links.</li>
+            <li className="mb-1"><span className="font-medium">Events</span> — Local events and a short summary.</li>
+            <li className="mb-1"><span className="font-medium">Dad joke</span> — A light humorous one-liner to include.</li>
           </ul>
 
           <h4 className="font-semibold">Tone examples</h4>
-          <p className="text-sm mb-2">Click a tone to apply it to the report preview.</p>
+          <p className="text-sm mb-2">Click a tone to apply it to the report.</p>
           <div className="space-y-2">
             <div>
               <button

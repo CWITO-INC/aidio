@@ -84,7 +84,7 @@ const ReportAudioPlayer: React.FC = () => {
 
       {showEditor && (
         <div className="mt-3">
-          <PersonalizationEditor />
+          <PersonalizationEditor onClose={() => setShowEditor(false)} />
         </div>
       )}
     </div>
