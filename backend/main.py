@@ -66,10 +66,29 @@ def list_tools():
     return {"tools": TOOL_DEFS}
 
 
+def ensure_personalization_file():
+    """Create personalization file from template if it doesn't exist."""
+    prefs_path = os.path.join(os.path.dirname(__file__), "report_personalization.json")
+    template_path = os.path.join(os.path.dirname(__file__), "report_personalization.template.json")
+    
+    if not os.path.exists(prefs_path):
+        try:
+            # Copy template if it exists
+            with open(template_path, "r") as template_file:
+                default_prefs = json.load(template_file)
+
+            # Write default preferences to new file
+            with open(prefs_path, "w") as f:
+                json.dump(default_prefs, f, indent=4)
+                
+        except Exception as e:
+            logging.error(f"Failed to create personalization file: {e}")
+
 @app.get("/personalization")
 def get_personalization():
     """Return the current report personalization as JSON."""
     prefs_path = os.path.join(os.path.dirname(__file__), "report_personalization.json")
+    ensure_personalization_file()
     try:
         with open(prefs_path, "r") as f:
             data = json.load(f)

@@ -5,13 +5,30 @@ import { Button } from "./ui/button";
 import { InfoIcon } from "lucide-react";
 import { Input } from "./ui/input";
 
+interface Preferences {
+  city?: string;
+  campus?: string;
+  include_tools?: string[];
+  interests?: string[];
+  tone?: string;
+}
+
+interface TempInputs {
+  include_tools: string;
+  interests: string;
+}
+
 const PersonalizationEditor: React.FC = () => {
-  const [prefs, setPrefs] = useState<any | null>(null);
+  const [prefs, setPrefs] = useState<Preferences | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showInfo, setShowInfo] = useState(false);
   const [availableTools, setAvailableTools] = useState<string[]>([]);
+  const [tempInputs, setTempInputs] = useState<TempInputs>({
+    include_tools: "",
+    interests: "",
+  });
   
 
   // Close info popup on Escape
@@ -29,6 +46,10 @@ const PersonalizationEditor: React.FC = () => {
     try {
       const data = await Api.get("/personalization");
       setPrefs(data);
+      setTempInputs({
+        include_tools: (data.include_tools || []).join(", "),
+        interests: (data.interests || []).join(", ")
+      });
     } catch (e: any) {
       setError(e.message || "Failed to load personalization");
     } finally {
@@ -76,13 +97,13 @@ const PersonalizationEditor: React.FC = () => {
   if (loading) return <div>Loading preferences...</div>;
   if (error) return <div style={{ color: "red" }}>{error}</div>;
 
-  const onChange = (key: string, value: string) => {
-    setPrefs((p: any) => ({ ...p, [key]: value }));
+  const onChange = (key: keyof Preferences, value: string) => {
+    setPrefs((p) => p ? { ...p, [key]: value } : { [key]: value });
   };
 
-  const onListChange = (key: string, value: string) => {
+  const onListChange = (key: keyof Preferences, value: string) => {
     const arr = value.split(",").map((s) => s.trim()).filter(Boolean);
-    setPrefs((p: any) => ({ ...p, [key]: arr }));
+    setPrefs((p) => p ? { ...p, [key]: arr } : { [key]: arr });
   };
 
   const save = async () => {
@@ -129,12 +150,20 @@ const PersonalizationEditor: React.FC = () => {
 
         <div>
           <label className="block text-sm">Include Tools (comma separated)</label>
-          <Input value={(prefs.include_tools || []).join(", ")} onChange={(e) => onListChange("include_tools", e.target.value)} />
+          <Input 
+            value={tempInputs.include_tools}
+            onChange={(e) => setTempInputs(prev => ({ ...prev, include_tools: e.target.value }))}
+            onBlur={(e) => onListChange("include_tools", e.target.value)}
+          />
         </div>
 
         <div>
           <label className="block text-sm">Interests (comma separated)</label>
-          <Input value={(prefs.interests || []).join(", ")} onChange={(e) => onListChange("interests", e.target.value)} />
+          <Input 
+            value={tempInputs.interests}
+            onChange={(e) => setTempInputs(prev => ({ ...prev, interests: e.target.value }))}
+            onBlur={(e) => onListChange("interests", e.target.value)}
+          />
         </div>
 
         <div>
