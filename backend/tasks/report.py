@@ -44,6 +44,23 @@ def generate_report() -> str:
     today = datetime.datetime.now()
     today_str = today.strftime("%A, %B %d, %Y")
 
+    # Load report preferences
+    preferences_path = os.path.join(os.path.dirname(__file__), "../report_personalization.json")
+    try:
+        with open(preferences_path, "r") as pref_file:
+            report_prefs_dict = json.load(pref_file)
+    except Exception as e:
+        report_prefs_dict = {}
+
+    report_prefs = ""
+    if report_prefs_dict:
+        for key, value in report_prefs_dict.items():
+            if isinstance(value, list):
+                value_str = ", ".join(map(str, value))
+            else:
+                value_str = str(value)
+            report_prefs += f"\n- {key}: {value_str}"
+
     _messages = [
         {
             "role": "system",
@@ -56,11 +73,14 @@ def generate_report() -> str:
         {
             "role": "user",
             "content": (
-                f"It is {today_str}. Generate a concise report about the current weather in Helsinki, "
-                "the lunch menu at Unicafe Kumpula and most important electricity prices. "
-                "Also give a summary of the news, the news should be in markdown link format "
-                "[Short description of the article](url to article), each article should be on its own line. "
-                "Additionally, include a summary of events from Stadissa.fi, highlighting key events."
+                f"It is {today_str}. Generate a concise report with given content preferences and styling rules. "
+                "Do not ask clarifying questions for missing inputs, use reasonable defaults. Only apply styling rules if the content is included. "
+                f"Content preferences: {report_prefs} "
+                "Report style rules: "
+                "- Report must be written in full words suitable for text-to-speech."
+                "- The weather temperature must be shown as an integer (no decimals). "
+                "- Give summary of the most important electricity prices. Instead of 'c/kWh', write 'cents per kilowatt hour'."
+                "- The news should be in markdown link format: [Short description](url), one per line."
             )
         }
     ]

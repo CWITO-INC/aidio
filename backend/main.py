@@ -13,6 +13,7 @@ from pydantic import BaseModel
 import glob
 import io
 import os
+import json
 
 
 app = FastAPI()
@@ -63,6 +64,32 @@ def get_latest_report():
 @app.get("/tools")
 def list_tools():
     return {"tools": TOOL_DEFS}
+
+
+@app.get("/personalization")
+def get_personalization():
+    """Return the current report personalization as JSON."""
+    prefs_path = os.path.join(os.path.dirname(__file__), "report_personalization.json")
+    try:
+        with open(prefs_path, "r") as f:
+            data = json.load(f)
+        return data
+    except FileNotFoundError:
+        return {}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.post("/personalization")
+def set_personalization(prefs: dict):
+    """Overwrite the report_personalization.json file with provided prefs."""
+    prefs_path = os.path.join(os.path.dirname(__file__), "report_personalization.json")
+    try:
+        with open(prefs_path, "w") as f:
+            json.dump(prefs, f, indent=4)
+        return {"status": "ok"}
+    except Exception as e:
+        return {"error": str(e)}
 
 
 @app.post("/tools/{tool_name}")

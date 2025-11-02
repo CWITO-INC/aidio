@@ -1,0 +1,17 @@
+{
+    "city": "Helsinki",
+    "campus": "Kumpula",
+    "include_tools": [
+        "weather",
+        "unicafe",
+        "electricity",
+        "news",
+        "events"
+    ],
+    "interests": [
+        "music",
+        "art",
+        "sports"
+    ],
+    "tone": "formal"
+}

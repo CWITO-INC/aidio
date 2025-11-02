@@ -3,6 +3,7 @@ import { Button } from "./ui/button";
 import { Api } from "../api";
 import { Spinner } from "./ui/spinner";
 import { AudioWaveformIcon } from "lucide-react";
+import PersonalizationEditor from "./PersonalizationEditor";
 
 const ReportAudioPlayer: React.FC = () => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -10,6 +11,7 @@ const ReportAudioPlayer: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [playing, setPlaying] = useState(false);
+  const [showEditor, setShowEditor] = useState(false);
 
   const fetchAudio = async () => {
     setLoading(true);
@@ -61,9 +63,10 @@ const ReportAudioPlayer: React.FC = () => {
   }, [audioUrl]);
 
   return (
-    <Button onClick={fetchAudio} disabled={loading || playing} className="backdrop-blur-md">
-      {loading ? <Spinner /> : <AudioWaveformIcon />}
-      {playing ? "Playing Report..." : "Generate & Play Report Audio"}
+    <div>
+      <Button onClick={fetchAudio} disabled={loading || playing} className="backdrop-blur-md">
+        {loading ? <Spinner /> : <AudioWaveformIcon />}
+        {playing ? "Playing Report..." : "Generate & Play Report Audio"}
       {error && <div style={{ color: "red" }}>{error}</div>}
       <audio
         ref={audioRef}
@@ -73,7 +76,18 @@ const ReportAudioPlayer: React.FC = () => {
         preload="metadata"
         className="hidden"
       />
-    </Button>
+      </Button>
+
+      <div className="mt-3">
+        <Button variant="outline" onClick={() => setShowEditor((s) => !s)} className="backdrop-blur-md">{showEditor ? "Hide Personalization" : "Edit Personalization"}</Button>
+      </div>
+
+      {showEditor && (
+        <div className="mt-3">
+          <PersonalizationEditor />
+        </div>
+      )}
+    </div>
   );
 };
 
