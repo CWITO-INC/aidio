@@ -4,6 +4,7 @@ import { useRef, useMemo } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { AudioAnalysisState } from "@/lib/audioAnalysis";
 
+
 export const Background1 = () => {
 
   return (

@@ -105,6 +105,9 @@ def generate_report() -> str:
                 "Do not mention or create sections for content you cannot retrieve. "
                 "Do not ask clarifying questions for missing inputs, use reasonable defaults. "
                 f"Content preferences: {report_prefs}"
+                "Do not format the report with any links, headings or bullet points."
+                "Translate any non-English content to English."
+                "Write everything in full sentences suitable for text-to-speech. Do not use abbreviations."
                 "You must present the information in the same order as the tools are listed in content preferences."
                 f"Report style rules: {styling_rules_text}" if styling_rules_text else ""
             )

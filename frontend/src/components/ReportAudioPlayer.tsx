@@ -73,7 +73,7 @@ const ReportAudioPlayer: React.FC = () => {
 
   return (
     <div>
-      <Button onClick={fetchAudio} disabled={!!loading || playing} className="backdrop-blur-md">
+      <Button onClick={() => generateReport().then(fetchAudio)} disabled={!!loading || playing} className="backdrop-blur-md">
         {loading ? <Spinner /> : <AudioWaveformIcon />}
         {playing ? "Playing Report..." : loading === 'tts' ? 'Generating speech...' : loading === 'ai' ? 'Writing report...' : "Generate & Play Report Audio"}
       {error && <div style={{ color: "red" }}>{error}</div>}
