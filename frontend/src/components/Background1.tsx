@@ -2,6 +2,7 @@
 import * as THREE from "three";
 import { useRef, useMemo } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
+import { AudioAnalysisState } from "@/lib/audioAnalysis";
 
 export const Background1 = () => {
 
@@ -50,6 +51,7 @@ function Swarm({ count, dummy = new THREE.Object3D() }: { count: number; dummy?:
     }
     return temp;
   }, [count]);
+
   useFrame((state) => {
     light.current.position.set(
       (-state.mouse.x * state.viewport.width) / 5,
@@ -77,7 +79,12 @@ function Swarm({ count, dummy = new THREE.Object3D() }: { count: number; dummy?:
           Math.cos((t / 10) * factor) +
           (Math.sin(t * 3) * factor) / 10
       );
-      dummy.scale.setScalar(s * 0.1);
+
+      const N = AudioAnalysisState.dataArray ? AudioAnalysisState.dataArray.length / 2 : 1;
+      const dataIdx = Math.floor(((a + b + s) * 400.0) % N);
+
+      dummy.position.multiplyScalar(0.7 + 0.4 * (AudioAnalysisState.dataArray ? AudioAnalysisState.dataArray[dataIdx] / 255 : 0));
+      dummy.scale.setScalar(0.1);
       dummy.rotation.set(s * 5, s * 5, s * 5);
       dummy.updateMatrix();
       mesh.current.setMatrixAt(i, dummy.matrix);
@@ -86,10 +93,8 @@ function Swarm({ count, dummy = new THREE.Object3D() }: { count: number; dummy?:
   });
   return (
     <>
+      <ambientLight intensity={0.05} />
       <pointLight ref={light} distance={100} intensity={20} color="lightblue">
-        {/* <mesh scale={[1, 1, 6]>
-          <dodecahedronGeometry args={[4, 0]} />
-        </mesh> */}
       </pointLight>
       <instancedMesh ref={mesh} args={[undefined, undefined, count]}>
         <dodecahedronGeometry args={[1, 0]} />

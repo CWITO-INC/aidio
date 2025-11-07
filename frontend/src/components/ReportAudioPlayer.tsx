@@ -4,6 +4,7 @@ import { Api } from "../api";
 import { Spinner } from "./ui/spinner";
 import { AudioWaveformIcon } from "lucide-react";
 import PersonalizationEditor from "./PersonalizationEditor";
+import { playAnalyzeAudio } from "@/lib/audioAnalysis";
 
 const ReportAudioPlayer: React.FC = () => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -48,19 +49,13 @@ const ReportAudioPlayer: React.FC = () => {
       }
 
       const blob = await res.blob(); // audio/mpeg
-      const url = URL.createObjectURL(blob);
-      setAudioUrl(url);
-      // Auto-play when loaded
-      audioRef.current?.addEventListener("loadeddata", () => {
-        audioRef.current?.play().then(() => {
-          setPlaying(true);
-          audioRef.current?.addEventListener("ended", () => setPlaying(false));
-        }).catch((e) => {
-          console.error("Autoplay failed:", e);
-          // Autoplay blocked; user must click Play
-          console.log("Autoplay failed", e);
-        });
-      });
+
+      setLoading(null);
+      setPlaying(true);
+
+      await playAnalyzeAudio(blob);
+
+      setPlaying(false)
 
     } catch (e: unknown) {
       setError((e as Error).message || "Failed to fetch audio");
@@ -78,7 +73,7 @@ const ReportAudioPlayer: React.FC = () => {
 
   return (
     <div>
-      <Button onClick={() => generateReport().then(fetchAudio)} disabled={!!loading || playing} className="backdrop-blur-md">
+      <Button onClick={fetchAudio} disabled={!!loading || playing} className="backdrop-blur-md">
         {loading ? <Spinner /> : <AudioWaveformIcon />}
         {playing ? "Playing Report..." : loading === 'tts' ? 'Generating speech...' : loading === 'ai' ? 'Writing report...' : "Generate & Play Report Audio"}
       {error && <div style={{ color: "red" }}>{error}</div>}

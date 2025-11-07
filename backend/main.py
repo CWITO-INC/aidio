@@ -176,7 +176,6 @@ def generate_report_tts():
     return StreamingResponse(
         io.BytesIO(audio_bytes),
         media_type="audio/mpeg",
-        # headers={"Content-Disposition": f"attachment; filename=report.mp3"}
     )
 
 
