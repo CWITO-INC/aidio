@@ -8,13 +8,27 @@ import PersonalizationEditor from "./PersonalizationEditor";
 const ReportAudioPlayer: React.FC = () => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<"ai" | "tts" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [playing, setPlaying] = useState(false);
   const [showEditor, setShowEditor] = useState(false);
 
+  const generateReport = async () => {
+    setLoading('ai');
+    setError(null);
+    setAudioUrl(null);
+    try {
+      const res = await Api.postRaw("/generate-report");
+      // Done generating report
+    } catch (e: unknown) {
+      setError((e as Error).message || "Failed to generate report");
+    } finally {
+      setLoading(null);
+    }
+  }
+
   const fetchAudio = async () => {
-    setLoading(true);
+    setLoading('tts');
     setError(null);
     setAudioUrl(null);
     try {
@@ -51,7 +65,7 @@ const ReportAudioPlayer: React.FC = () => {
     } catch (e: unknown) {
       setError((e as Error).message || "Failed to fetch audio");
     } finally {
-      setLoading(false);
+      setLoading(null);
     }
   };
 
@@ -64,9 +78,9 @@ const ReportAudioPlayer: React.FC = () => {
 
   return (
     <div>
-      <Button onClick={fetchAudio} disabled={loading || playing} className="backdrop-blur-md">
+      <Button onClick={() => generateReport().then(fetchAudio)} disabled={!!loading || playing} className="backdrop-blur-md">
         {loading ? <Spinner /> : <AudioWaveformIcon />}
-        {playing ? "Playing Report..." : "Generate & Play Report Audio"}
+        {playing ? "Playing Report..." : loading === 'tts' ? 'Generating speech...' : loading === 'ai' ? 'Writing report...' : "Generate & Play Report Audio"}
       {error && <div style={{ color: "red" }}>{error}</div>}
       <audio
         ref={audioRef}
