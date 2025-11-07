@@ -1,6 +1,7 @@
 import datetime
 import json
 import os
+from tasks.prompts import get_prompt_messages
 from dotenv import load_dotenv
 
 from tools.tools import TOOLS
@@ -171,15 +172,11 @@ def generate_report() -> str:
     except Exception as e:
         report_content = f"Error generating report: {e}"
 
-
-    # Add timestamp
-    report_with_timestamp = f"Report generated at: {today}\n\n{report_content}"
-
     if not os.path.exists("reports"):
         os.makedirs("reports")
 
     file_name = f"reports/report-{today.strftime('%Y-%m-%d_%H-%M-%S')}.txt"
     with open(file_name, "w") as f:
-        f.write(report_with_timestamp)
+        f.write(report_content)
 
-    return report_with_timestamp
+    return report_content

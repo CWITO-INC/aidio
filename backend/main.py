@@ -37,11 +37,11 @@ app.add_middleware(
 )
 
 
-@app.on_event("startup")
-def start_scheduler():
-    scheduler = BackgroundScheduler()
-    scheduler.add_job(generate_report, 'interval', minutes=60)
-    scheduler.start()
+# @app.on_event("startup")
+# def start_scheduler():
+#     scheduler = BackgroundScheduler()
+#     scheduler.add_job(generate_report, 'interval', minutes=60)
+#     scheduler.start()
 
 
 @app.post("/generate-report")
