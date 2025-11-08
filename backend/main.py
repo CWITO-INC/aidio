@@ -23,6 +23,9 @@ class TTSRequest(BaseModel):
     text: str
     voice: str = "Rachel"
 
+class TTSSampleRequest(BaseModel):
+    voice_id: str
+
 
 origins = [
     "http://localhost:5173",
@@ -134,7 +137,21 @@ def generate_tts(request: TTSRequest):
         )
     except Exception as e:
         return {"error": str(e)}
-
+    
+@app.post("/tts/sample")
+def generate_sample_tts(request: TTSSampleRequest):
+    """Generate a short sample for a given voice ID."""
+    try:
+        sample_text = "Hello! You can choose my voice for your daily reports."
+        audio_bytes = text_to_speech(sample_text, voice=request.voice_id)
+        return StreamingResponse(
+            io.BytesIO(audio_bytes),
+            media_type="audio/mpeg",
+        )
+    except Exception as e:
+        logging.error(f"Error generating TTS sample: {e}")
+        # Return a JSON error with a proper status code
+        return {"error": str(e)}, 500
 
 @app.post("/tts/report")
 def generate_report_tts():
@@ -160,8 +177,21 @@ def generate_report_tts():
         with open(latest_file, 'r') as f:
             content = f.read()
 
+        # Load personalization to get the saved voice
+        user_voice = "21m00Tcm4TlvDq8ikWAM" # Default (Rachel)
+        prefs_path = os.path.join(os.path.dirname(__file__), "report_personalization.json")
+        
+        if os.path.exists(prefs_path):
+            try:
+                with open(prefs_path, "r") as f:
+                    prefs = json.load(f)
+                    user_voice = prefs.get("voice", user_voice)
+            except Exception as e:
+                logging.warning(f"Could not load voice from personalization, using default: {e}")
+        
         try:
-            audio_bytes = text_to_speech(content)
+            # Pass the user_voice to the TTS function
+            audio_bytes = text_to_speech(content, voice=user_voice)
 
             # Save audio to file
             os.makedirs('reports/audio', exist_ok=True)

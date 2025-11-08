@@ -2,8 +2,8 @@ import React, { useEffect, useState } from "react";
 import Popup from "./Popup";
 import { Api } from "../api";
 import { Button } from "./ui/button";
-import { InfoIcon } from "lucide-react";
 import { Input } from "./ui/input";
+import { InfoIcon, PlayIcon, Loader2 } from "lucide-react";
 
 interface Preferences {
   city?: string;
@@ -11,6 +11,12 @@ interface Preferences {
   include_tools?: string[];
   interests?: string[];
   tone?: string;
+  voice?: string;
+}
+
+interface Voice {
+  name: string;
+  voice_id: string;
 }
 
 interface TempInputs {
@@ -29,6 +35,9 @@ const PersonalizationEditor: React.FC<PersonalizationEditorProps> = ({ onClose }
   const [error, setError] = useState<string | null>(null);
   const [showInfo, setShowInfo] = useState(false);
   const [availableTools, setAvailableTools] = useState<string[]>([]);
+  const [availableVoices, setAvailableVoices] = useState<Voice[]>([]);
+  const [samplingVoice, setSamplingVoice] = useState<string | null>(null);
+  const [audioPlayer, setAudioPlayer] = useState<HTMLAudioElement | null>(null);
   const [toolsOpen, setToolsOpen] = useState(false);
   const toolsDropdownRef = React.useRef<HTMLDivElement | null>(null);
   const [tempInputs, setTempInputs] = useState<TempInputs>({
@@ -87,6 +96,83 @@ useEffect(() => {
     cancelled = true;
   };
 }, []);
+
+  // Fetch available voices
+  useEffect(() => {
+    let cancelled = false;
+    Api.get("/tts/voices")
+      .then((data) => {
+        if (cancelled) return;
+        setAvailableVoices(data?.voices || []);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setAvailableVoices([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (audioPlayer) {
+        audioPlayer.pause();
+      }
+    };
+  }, [audioPlayer]);
+
+  const playSample = async (voiceId: string) => {
+    if (!voiceId || samplingVoice) return; // Don't play if nothing selected or already playing
+    setSamplingVoice(voiceId);
+    setError(null);
+
+    // Clean up previous player if it exists
+    if (audioPlayer) {
+      audioPlayer.pause();
+    }
+
+    let objectUrl: string | null = null;
+    
+    try {
+      const res = await Api.postRaw("/tts/sample", { voice_id: voiceId });
+      
+      if (!res.ok) {
+        let msg = `Request failed: ${res.status}`;
+        try {
+          const data = await res.json();
+          if (data?.error) msg = data.error;
+        } catch (jsonError) { /* ignore */ }
+        throw new Error(msg);
+      }
+      
+      const blob = await res.blob();
+      objectUrl = URL.createObjectURL(blob);
+      const audio = new Audio(objectUrl);
+      setAudioPlayer(audio); // Save player to state
+      
+      audio.onended = () => {
+        setSamplingVoice(null);
+        if (objectUrl) URL.revokeObjectURL(objectUrl); // Clean up
+      };
+
+      audio.onerror = () => {
+        setError("Failed to play audio sample.");
+        setSamplingVoice(null);
+        if (objectUrl) URL.revokeObjectURL(objectUrl); // Clean up
+      }
+      
+      audio.play();
+
+    } catch (err: any) {
+      console.error("Error playing sample:", err);
+      setError(err.message || "Failed to play sample");
+      setSamplingVoice(null);
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl); // Clean up on error
+      }
+    }
+  };
 
   // Close tools dropdown on outside click
   useEffect(() => {
@@ -231,6 +317,40 @@ useEffect(() => {
         <div>
           <label className="block text-sm">Tone</label>
           <Input value={prefs.tone || ""} onChange={(e) => onChange("tone", e.target.value)} />
+        </div>
+
+        <div>
+          <label className="block text-sm">Voice</label>
+          <div className="flex items-center gap-2">
+            <select
+              value={prefs.voice || ""}
+              onChange={(e) => onChange("voice", e.target.value)}
+              className="flex-grow rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] h-[36px] accent-primary"
+            >
+              <option value="" disabled>
+                {availableVoices.length === 0 ? "Loading voices..." : "Select a voice"}
+              </option>
+              {availableVoices.map((voice) => (
+                <option key={voice.voice_id} value={voice.voice_id}>
+                  {voice.name}
+                </option>
+              ))}
+            </select>
+            <Button
+              size="icon"
+              variant="outline"
+              className="w-9 h-9 flex-shrink-0"
+              onClick={() => playSample(prefs.voice || "")}
+              disabled={!prefs.voice || !!samplingVoice}
+              title="Play sample"
+            >
+              {samplingVoice === prefs.voice ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <PlayIcon className="w-4 h-4" />
+              )}
+            </Button>
+          </div>
         </div>
 
         <div className="flex gap-2 mt-3">
