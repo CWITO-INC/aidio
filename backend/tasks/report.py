@@ -71,7 +71,7 @@ def generate_report() -> str:
 
     # Build styling rules based on allowed tools
     styling_rules = ["- Report must be written in full words suitable for text-to-speech."]
-    
+
     if "get_weather" in allowed_tools:
         styling_rules.append("- The weather temperature must be shown as an integer (no decimals).")
     
@@ -80,6 +80,9 @@ def generate_report() -> str:
     
     if "yle_news" in allowed_tools:
         styling_rules.append("- The news should be in markdown link format: [Short description](url), one per line.")
+
+    if "local_events_tool" in allowed_tool_mapping:
+        styling_rules.append("- If there are local events, present them under clear category headings (e.g., 'Music Events'). For each event, list the name, venue, date, time, and price, with the event name linked to the event URL.")
     
     # Add tone instruction
     tone_instruction = ""
@@ -151,6 +154,46 @@ def generate_report() -> str:
 
         messages[1]["content"] += stadissa_events_for_llm
 
+    if "local_events_tool" in allowed_tools:
+        # Assuming you have the city preference available, or default to Helsinki
+        city = report_prefs_dict.get("city", "Helsinki") 
+        interests = report_prefs_dict.get("interests", "music,art,sports")
+        
+        local_events_tool = allowed_tool_mapping["local_events_tool"]
+        
+        # Invoke the tool
+        local_events_result_str = local_events_tool(city=city, interests=interests) 
+        
+        try:
+            local_events_result = json.loads(local_events_result_str)
+        except json.JSONDecodeError:
+            local_events_result = {"status": "error", "summary": "Failed to parse JSON response from LocalEventsTool."}
+        
+        local_events_for_llm = ""
+        if local_events_result.get("summary"):
+            local_events_for_llm += "\n\nHere is a curated list of events from the Local Events Tool (Ticketmaster):\n"
+            local_events_for_llm += local_events_result.get("summary")
+            
+            if local_events_result.get("events"):
+                local_events_for_llm += "\n\nCurated Event Data (Grouped by Category, Top 3 Each):\n"
+                
+                # Iterate over the curated events list (which includes category headers)
+                for item in local_events_result["events"]:
+                    if item.get("type") == "category_header":
+                        # Add a clear heading for the LLM to use
+                        local_events_for_llm += f"--- CATEGORY: {item.get('category').upper()} ---\n"
+                    else:
+                        # Event details
+                        local_events_for_llm += (
+                            f"- Name: {item.get('name')}, "
+                            f"Venue: {item.get('venue')}, "
+                            f"Date: {item.get('date')} {item.get('time')}, "
+                            f"Price: {item.get('price')}, "
+                            f"URL: {item.get('url')}\n"
+                        )
+            
+        messages[1]["content"] += local_events_for_llm
+
     try:
         while iteration_count < max_iterations:
             iteration_count += 1
@@ -164,8 +207,7 @@ def generate_report() -> str:
             for tool_call in tool_calls:
                 tool_response_message = get_tool_response(tool_call, allowed_tool_mapping)
                 messages.append(tool_response_message)
-                print(
-                    f"Tool {tool_call.function.name} response: {tool_response_message['content']}")
+                print(f"Tool {tool_call.function.name} response: {tool_response_message['content']}")
 
         if iteration_count >= max_iterations:
             print("Warning: Maximum iterations reached")

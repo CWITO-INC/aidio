@@ -7,7 +7,8 @@
         "get_electricity_prices",
         "yle_news",
         "get_dad_joke",
-        "stadissa_tool"
+        "stadissa_tool",
+        "local_events_tool"
     ],
     "interests": [
         "music",
