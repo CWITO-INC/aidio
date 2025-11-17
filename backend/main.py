@@ -138,6 +138,41 @@ def generate_tts(request: TTSRequest):
     except Exception as e:
         return {"error": str(e)}
     
+def transcribe_report(report_name: str):
+    """Helper function to transcribe an audio file given its path."""
+    # First check if transcription already exists
+    audio_path = f'reports/audio/{report_name}.mp3'
+    transcript_path = f'reports/transcripts/{report_name}.json'
+    if os.path.exists(transcript_path):
+        with open(transcript_path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+
+    try:
+        with open(audio_path, 'rb') as f:
+            audio_bytes = f.read()
+        
+        from services.stt import create_transcription
+        transcription = create_transcription(audio_bytes)
+        # Save transcription as JSON
+        os.makedirs('reports/transcripts', exist_ok=True)
+        with open(transcript_path, 'w', encoding='utf-8') as f:
+            f.write(transcription.json())
+
+        return transcription
+    except Exception as e:
+        raise Exception(f"Error transcribing audio file: {str(e)}")
+    
+@app.post("/transcribe-latest")
+def transcribe_audio():
+    """Transcribe the latest audio file in the 'reports/audio' directory."""
+    import glob
+    list_of_files = glob.glob('reports/audio/*')
+    if not list_of_files:
+        return {"error": "No audio files found."}
+    latest_file = max(list_of_files, key=os.path.getctime)
+    report_name = os.path.splitext(os.path.basename(latest_file))[0]
+    return transcribe_report(report_name)
+
 @app.post("/tts/sample")
 def generate_sample_tts(request: TTSSampleRequest):
     """Generate a short sample for a given voice ID."""

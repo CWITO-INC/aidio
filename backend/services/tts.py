@@ -36,15 +36,10 @@ def text_to_speech(text: str, voice: str = "21m00Tcm4TlvDq8ikWAM", output_path: 
             text=text,
             voice_id=voice_id,
             model_id="eleven_multilingual_v2",
-            output_format="mp3_44100_128"
+            output_format="mp3_44100_128",
         )
         
         audio_bytes = b"".join(chunk for chunk in audio_generator)
-        
-        if output_path:
-            os.makedirs(os.path.dirname(output_path), exist_ok=True)
-            with open(output_path, "wb") as f:
-                f.write(audio_bytes)
         
         return audio_bytes
         

@@ -1,3 +1,4 @@
 .ropeproject
 /backend/cache/
 /backend/report_personalization.json
+.DS_Store

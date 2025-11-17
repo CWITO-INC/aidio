@@ -12,6 +12,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { Spinner } from "./components/ui/spinner";
 import { Select } from "./components/ui/select";
 import ToolSelect from "./components/ToolSelect";
+import { TranscriptionTest } from "./components/TranscriptionTest";
 
 interface YleNewsArticle {
   title: string;
@@ -34,6 +35,7 @@ interface YleNewsState {
 function App() {
   const { data: reportData } = useQuery<{ report: string }>({ queryKey: ["/latest-report"] });
   const { data: toolsData, isSuccess: isToolsSuccess } = useQuery<{ tools: Tool[] }>({ queryKey: ["/tools"] });
+
   const [yleNewsState, setYleNewsState] = useState<YleNewsState>({
     categories: [],
     selectedCategory: null,
@@ -94,6 +96,7 @@ function App() {
                 <Button variant="outline" className="backdrop-blur-md mr-4" onClick={() => generateReport()} disabled={isGenerating}><NewspaperIcon /> Generate new report {isGenerating && <Spinner />}</Button>
                 <ReportAudioPlayer />
               </div>
+              <TranscriptionTest />
               <article className="p-4 border rounded prose prose-invert font-serif backdrop-blur-lg">
                 <Markdown remarkPlugins={[remarkGfm]}>{reportData?.report}</Markdown>
               </article>
