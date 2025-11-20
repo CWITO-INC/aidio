@@ -7,20 +7,20 @@ export const Transcription = ({
     transcription: any;
     playing: boolean;
 }) => {
-    const textEl = useRef<HTMLPreElement | null>(null);
+    const [words, setWords] = useState<{ text: string; id: number }[]>([]);
+
     const accumulate = (text: string) => {
-        textEl.current!.textContent += text;
-        textEl.current!.scrollTop = textEl.current!.scrollHeight;
+        setWords((prev) => [...prev, { text, id: Date.now() + Math.random() }]);
     }
     const started = useRef<boolean>(false);
     useEffect(() => {
         if (playing && transcription && !started.current) {
             if (!started.current) {
                 started.current = true;
-                textEl.current!.textContent = "";
+                setWords([]);
             }
 
-            transcription.words.forEach(word => {
+            transcription.words.forEach((word: any) => {
                 setTimeout(() => {
                     accumulate(word.text);
                 }, Number(word.start) * 1000)
@@ -28,9 +28,39 @@ export const Transcription = ({
         }
     }, [transcription, playing]);
 
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (containerRef.current) {
+            containerRef.current.scrollTop = containerRef.current.scrollHeight;
+        }
+    }, [words]);
+
     return (
-        <div className="mt-4 p-4 rounded-lg max-h-96 overflow-y-auto backdrop-blur-md">
-            <pre className="whitespace-pre-wrap text-sm" ref={textEl}></pre>
+        <div ref={containerRef} className="mt-4 p-4 rounded-lg h-32 w-128 overflow-y-hidden flex flex-wrap">
+            {words.map((word) => (
+                <Word key={word.id} text={word.text} />
+            ))}
         </div>
     );
 }
+
+const Word = ({ text }: { text: string }) => {
+    const [opacity, setOpacity] = useState(1);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setOpacity(0);
+        }, 6000);
+        return () => clearTimeout(timer);
+    }, []);
+
+    return (
+        <span
+            className="mr-1 transition-opacity duration-2000"
+            style={{ opacity }}
+        >
+            {text}
+        </span>
+    );
+};
