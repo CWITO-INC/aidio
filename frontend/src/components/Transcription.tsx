@@ -1,44 +1,47 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranscription } from "../lib/transcriptionContext";
 
-export const Transcription = ({
-    transcription,
-    playing,
-}: {
-    transcription: any;
-    playing: boolean;
-}) => {
-    const [words, setWords] = useState<{ text: string; id: number }[]>([]);
+export const Transcription = () => {
+    const { isPlaying, words } = useTranscription();
+    const [currentWords, setCurrentWords] = useState<{ text: string; id: number }[]>([]);
 
     const accumulate = (text: string) => {
-        setWords((prev) => [...prev, { text, id: Date.now() + Math.random() }]);
+        setCurrentWords((prev) => [...prev, { text, id: Date.now() + Math.random() }]);
     }
     const started = useRef<boolean>(false);
     useEffect(() => {
-        if (playing && transcription && !started.current) {
+        if (isPlaying && words && !started.current) {
             if (!started.current) {
                 started.current = true;
-                setWords([]);
+                setCurrentWords([]);
             }
 
-            transcription.words.forEach((word: any) => {
+            words.forEach((word: any) => {
                 setTimeout(() => {
                     accumulate(word.text);
-                }, Number(word.start) * 1000)
+                }, Number(word.start) * 1000 - 300)
             });
         }
-    }, [transcription, playing]);
+
+        if (!isPlaying) {
+            started.current = false;
+        }
+    }, [words, isPlaying]);
 
     const containerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         if (containerRef.current) {
-            containerRef.current.scrollTop = containerRef.current.scrollHeight;
+            containerRef.current.scroll({
+                top: containerRef.current.scrollHeight,
+                behavior: "smooth"
+            })
         }
-    }, [words]);
+    }, [currentWords]);
 
     return (
-        <div ref={containerRef} className="mt-4 p-4 rounded-lg h-32 w-128 overflow-y-hidden flex flex-wrap">
-            {words.map((word) => (
+        <div ref={containerRef} className="h-24 w-180 flex flex-wrap overflow-visible overflow-y-scroll text-2xl no-scrollbar">
+            {currentWords.map((word) => (
                 <Word key={word.id} text={word.text} />
             ))}
         </div>
@@ -46,20 +49,20 @@ export const Transcription = ({
 }
 
 const Word = ({ text }: { text: string }) => {
-    const [opacity, setOpacity] = useState(1);
-
+    const [opacity, setOpacity] = useState(0)
+    const [duration, setDuration] = useState("300ms")
     useEffect(() => {
-        const timer = setTimeout(() => {
-            setOpacity(0);
-        }, 6000);
-        return () => clearTimeout(timer);
-    }, []);
+        setTimeout(() => {
+            setOpacity(1)
+        }, 10)
+        setTimeout(() => {
+            setDuration("3000ms")
+            setOpacity(0)
+        }, 4000)
+    }, [])
 
     return (
-        <span
-            className="mr-1 transition-opacity duration-2000"
-            style={{ opacity }}
-        >
+        <span className="mr-1 transition-opacity" style={{ opacity, transitionDuration: duration }}>
             {text}
         </span>
     );

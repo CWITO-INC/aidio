@@ -29,7 +29,7 @@ def create_transcription(audio_bytes: bytes) -> SpeechToTextChunkResponseModel:
             language_code="eng",  # Language of the audio file. Set to None for auto-detection
             diarize=False,  # Whether to annotate who is speaking
             num_speakers=1,
-            timestamps_granularity="word",  # "word" or "sentence"
+            timestamps_granularity="character",  # "word" or "sentence"
         )
 
         print(transcription)

@@ -5,17 +5,17 @@ import { Spinner } from "./ui/spinner";
 import { AudioWaveformIcon } from "lucide-react";
 import PersonalizationEditor from "./PersonalizationEditor";
 import { playAnalyzeAudio } from "@/lib/audioAnalysis";
-import { Transcription } from "./Transcription";
+import { useTranscription } from "@/lib/transcriptionContext"
 
 const ReportAudioPlayer: React.FC = () => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState<"ai" | "tts" | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [playing, setPlaying] = useState(false);
   const [showEditor, setShowEditor] = useState(false);
-  const [transcription, setTranscription] = useState<any | null>(null);
   const [createNew, setCreateNew] = useState(false);
+
+  const { isPlaying, setIsPlaying, words, setWords } = useTranscription()
 
   const generateReport = async () => {
     setLoading('ai');
@@ -61,18 +61,18 @@ const ReportAudioPlayer: React.FC = () => {
       const blob = await res.blob(); // audio/mpeg
 
       try {
-        const transcriptionRes = await Api.post("/transcribe-latest");
-        setTranscription(transcriptionRes);
+        const transcriptionRes = await Api.post("/transcribe-latest") as any;
+        setWords(transcriptionRes.words);
       } catch (transcriptionError) {
         console.error("Error fetching transcription:", transcriptionError);
       }
 
       setLoading(null);
-      setPlaying(true);
+      setIsPlaying(true);
 
       await playAnalyzeAudio(blob);
 
-      setPlaying(false)
+      setIsPlaying(false)
 
     } catch (e: unknown) {
       setError((e as Error).message || "Failed to fetch audio");
@@ -93,9 +93,9 @@ const ReportAudioPlayer: React.FC = () => {
       <Button variant={createNew ? "default" : "outline"} onClick={() => setCreateNew((s) => !s)} className="backdrop-blur-md">
         {createNew ? "Creating New Report" : "Using Existing Report"}
       </Button>
-      <Button onClick={() => generateReport().then(fetchAudioAndTranscription)} disabled={!!loading || playing} className="backdrop-blur-md">
+      <Button onClick={() => generateReport().then(fetchAudioAndTranscription)} disabled={!!loading || isPlaying} className="backdrop-blur-md">
         {loading ? <Spinner /> : <AudioWaveformIcon />}
-        {playing ? "Playing Report..." : loading === 'tts' ? 'Generating speech...' : loading === 'ai' ? 'Writing report...' : "Generate & Play Report Audio"}
+        {isPlaying ? "Playing Report..." : loading === 'tts' ? 'Generating speech...' : loading === 'ai' ? 'Writing report...' : "Generate & Play Report Audio"}
       {error && <div style={{ color: "red" }}>{error}</div>}
       <audio
         ref={audioRef}
@@ -111,14 +111,9 @@ const ReportAudioPlayer: React.FC = () => {
         <Button variant="outline" onClick={() => setShowEditor((s) => !s)} className="backdrop-blur-md">{showEditor ? "Hide Personalization" : "Edit Personalization"}</Button>
       </div>
 
-      {showEditor && (
-        <div className="mt-3">
-          <PersonalizationEditor onClose={() => setShowEditor(false)} />
-        </div>
-      )}
-      {transcription && (
-        <Transcription transcription={transcription} playing={playing} />
-      )}
+      <div className="mt-3 overflow-hidden transition-[height] duration-1000 ease-in-out" style={{ height: showEditor ? 'auto' : 0, width: showEditor ? 'auto' : 0 }}>
+        <PersonalizationEditor onClose={() => setShowEditor(false)} />
+      </div>
     </div>
   );
 };

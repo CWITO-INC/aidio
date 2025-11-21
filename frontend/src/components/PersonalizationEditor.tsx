@@ -228,7 +228,7 @@ useEffect(() => {
   if (!prefs) return <div>No preferences found.</div>;
 
   return (
-  <div className="mt-4 p-4 border rounded backdrop-blur-lg w-[640px] mx-auto overflow-x-hidden break-words">
+  <div className="mt-4 p-6 squircle border border-white/10 backdrop-blur-md w-[640px] mx-auto overflow-x-hidden break-words">
       <div className="flex items-center justify-start gap-2 mb-2">
         <h3 className="font-semibold">Report Personalization</h3>
         <Button
@@ -354,7 +354,7 @@ useEffect(() => {
         </div>
 
         <div className="flex gap-2 mt-3">
-          <Button variant="outline" onClick={fetchPrefs}>Cancel</Button>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
           <Button onClick={save} disabled={saving} className="backdrop-blur-md">{saving ? "Saving..." : "Save Preferences"}</Button>
         </div>
 
