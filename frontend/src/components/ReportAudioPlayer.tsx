@@ -90,6 +90,7 @@ const ReportAudioPlayer: React.FC = () => {
 
   return (
     <div>
+      <div className="flex gap-2">
       <Button variant={createNew ? "default" : "outline"} onClick={() => setCreateNew((s) => !s)} className="backdrop-blur-md">
         {createNew ? "Creating New Report" : "Using Existing Report"}
       </Button>
@@ -106,6 +107,7 @@ const ReportAudioPlayer: React.FC = () => {
         className="hidden"
       />
       </Button>
+      </div>
 
       <div className="mt-3">
         <Button variant="outline" onClick={() => setShowEditor((s) => !s)} className="backdrop-blur-md">{showEditor ? "Hide Personalization" : "Edit Personalization"}</Button>

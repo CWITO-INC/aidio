@@ -1,8 +1,9 @@
 import React, { createContext, useContext, useState } from 'react';
 
-interface Word {
+export interface Word {
   text: string;
   start: number;
+  characters: { text: string; start: number }[];
 }
 
 interface TranscriptionContextType {

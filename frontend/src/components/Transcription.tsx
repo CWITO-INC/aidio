@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { useTranscription } from "../lib/transcriptionContext";
+import { useTranscription, type Word } from "../lib/transcriptionContext";
 
 export const Transcription = () => {
     const { isPlaying, words } = useTranscription();
-    const [currentWords, setCurrentWords] = useState<{ text: string; id: number }[]>([]);
+    const [currentWords, setCurrentWords] = useState<Word[]>([]);
 
-    const accumulate = (text: string) => {
-        setCurrentWords((prev) => [...prev, { text, id: Date.now() + Math.random() }]);
+    const accumulate = (word: Word) => {
+        setCurrentWords((prev) => [...prev, word]);
     }
     const started = useRef<boolean>(false);
     useEffect(() => {
@@ -16,9 +16,9 @@ export const Transcription = () => {
                 setCurrentWords([]);
             }
 
-            words.forEach((word: any) => {
+            words.forEach((word) => {
                 setTimeout(() => {
-                    accumulate(word.text);
+                    accumulate(word);
                 }, Number(word.start) * 1000 - 300)
             });
         }
@@ -40,18 +40,25 @@ export const Transcription = () => {
     }, [currentWords]);
 
     return (
-        <div ref={containerRef} className="h-24 w-180 flex flex-wrap overflow-visible overflow-y-scroll text-2xl no-scrollbar">
-            {currentWords.map((word) => (
-                <Word key={word.id} text={word.text} />
+        <div ref={containerRef} className="h-24 w-180 flex flex-wrap overflow-visible overflow-y-scroll text-3xl no-scrollbar">
+            {currentWords.map(word => (
+                <Word key={word.start} word={word} />
             ))}
         </div>
     );
 }
 
-const Word = ({ text }: { text: string }) => {
+const Word = ({ word }: { word: Word }) => {
     const [opacity, setOpacity] = useState(0)
     const [duration, setDuration] = useState("300ms")
+    const spanRef = useRef<HTMLSpanElement>(null);
+    const onceRef = useRef<boolean>(false);
+
     useEffect(() => {
+        if (onceRef.current) {
+            return;
+        }
+        onceRef.current = true;
         setTimeout(() => {
             setOpacity(1)
         }, 10)
@@ -59,11 +66,16 @@ const Word = ({ text }: { text: string }) => {
             setDuration("3000ms")
             setOpacity(0)
         }, 4000)
+        word.characters.forEach((character) => {
+            setTimeout(() => {
+                if (spanRef.current) {
+                    spanRef.current.textContent += character.text
+                }
+            }, Math.max((Number(character.start) - Number(word.start)) * 1000, 0))
+        })
     }, [])
 
     return (
-        <span className="mr-1 transition-opacity" style={{ opacity, transitionDuration: duration }}>
-            {text}
-        </span>
+        <span className="mr-1 transition-opacity" style={{ opacity, transitionDuration: duration }} ref={spanRef} />
     );
 };

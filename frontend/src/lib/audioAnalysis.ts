@@ -11,6 +11,7 @@ export const playAnalyzeAudio = async (audioBlob: Blob): Promise<void> => {
       source.buffer = audioBuffer;
 
       const analyser = audioContext.createAnalyser();
+      analyser.smoothingTimeConstant = 0.8;
       analyser.fftSize = 2048;
       const bufferLength = analyser.frequencyBinCount;
       const id = crypto.randomUUID();
@@ -25,6 +26,7 @@ export const playAnalyzeAudio = async (audioBlob: Blob): Promise<void> => {
       const analyze = () => {
         if (!AudioAnalysisState.dataArray || AudioAnalysisState.sourceId !== id) return;
         analyser.getByteFrequencyData(AudioAnalysisState.dataArray);
+        // analyser.getByteTimeDomainData(AudioAnalysisState.dataArray);
         // Process spectral data in dataArray
         if (audioContext.currentTime < audioBuffer.duration) {
           requestAnimationFrame(analyze);
