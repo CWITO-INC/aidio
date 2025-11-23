@@ -19,7 +19,7 @@ export const Transcription = () => {
             words.forEach((word) => {
                 setTimeout(() => {
                     accumulate(word);
-                }, Number(word.start) * 1000 - 300)
+                }, Number(word.start) * 1000 - 300 + 1000)
             });
         }
 
