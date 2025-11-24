@@ -3,7 +3,7 @@ import { Button } from "./components/ui/button";
 import { CodeXmlIcon, SparklesIcon } from "lucide-react";
 import ReportAudioPlayer from "./components/ReportAudioPlayer";
 import { Background1 } from "./components/Background1";
-import React from "react";
+import React, { useEffect } from "react";
 import { Transcription } from "./components/Transcription";
 import { TranscriptionProvider } from "./lib/transcriptionContext";
 import { Background2 } from "./components/Background2";
@@ -12,10 +12,20 @@ import { Background3 } from "./components/Background3";
 function App() {
   const [backgroundOn, setBackgroundOn] = React.useState(0);
 
+  // Fullscreen on f
+  useEffect(() => {
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "f") {
+        document.documentElement.requestFullscreen();
+      }
+    });
+  }, []);
+
   return (
     <div className="flex flex-col items-start justify-end min-h-screen">
-      {backgroundOn === 1 && <Background2 />}
-      {backgroundOn === 2 && <Background3 />}
+      {/* backgroundOn === 1 && <Background2 /> */}
+      {/* backgroundOn === 2 && <Background3 /> */}
+      <Background3 />
       <div className="absolute top-4 right-4">
         <Button variant="outline" size="icon-sm" onClick={() => setBackgroundOn((backgroundOn + 1) % 3)}>
           <SparklesIcon />

@@ -303,12 +303,12 @@ vec2 coord(in vec2 p) {
 float getScene(in vec3 pos) {
   pos.y -= 0.5;
     float x = (pos.x + 0.5) * 0.2 + sin(pos.y * 2.0) * 0.1;
-    float y = (pos.y + 0.0) * 0.2 + sin(pos.x * 3.0) * 0.1;
+    float y = (pos.y + 0.0) * 0.05 + sin(pos.x * 3.0) * 0.1;
     float a = 1.0 ;/// (abs(y) + 1.0);
     float audioVal = texture2D(u_audio, vec2(x+0.0, y+0.00)).r;
                    // + texture2D(u_audio, vec2(x+0.005, y+0.01)).r 
                    // + texture2D(u_audio, vec2(x+0.001, y+0.02)).r;
-    return length(pos) - 1.0 - audioVal * 0.1 * a - sin(pos.y * 7.0 + u_time * 3.0) * 0.03;
+    return length(pos) - 1.0 - audioVal * 0.1 * a - sin(pos.y * 7.0 + u_time * 1.0) * 0.03;
 }
 
 vec3 getNormal(in vec3 pos) {
@@ -322,18 +322,21 @@ vec3 getNormal(in vec3 pos) {
 void main() {
   vec2 st = coord(gl_FragCoord.xy);
 
-  float angle = sin(u_time * 0.5) * 0.5;
+  float angle = sin(u_time * 0.1) * 0.5;
   vec3 ray = rotateY(normalize(vec3(st, 0.5)), angle);
   vec3 pos = rotateY(vec3(0.0, 0.0, -3.0), angle);
   vec3 color = vec3(0.0);
   vec3 normal = vec3(0.1, 0.0, 0.0);
   float t = 0.0;
-  for (int i = 0; i < 300; i++) {
+  for (int i = 0; i < 200; i++) {
     float dist = getScene(pos + ray * t);
 
     if (dist < 0.0001) {
       color = mix(vec3(1.0, 1.0, 1.0), vec3(1.0, 0.0, 1.0), 1.0 / (t * t));
       normal = getNormal(pos + ray * t);
+      break;
+    }
+    if (dist > 10.0) {
       break;
     }
 

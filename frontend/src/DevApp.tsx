@@ -13,6 +13,7 @@ import { Spinner } from "./components/ui/spinner";
 import { Select } from "./components/ui/select";
 import ToolSelect from "./components/ToolSelect";
 import { TranscriptionTest } from "./components/TranscriptionTest";
+import { TranscriptionProvider } from "./lib/transcriptionContext";
 
 interface YleNewsArticle {
   title: string;
@@ -67,7 +68,7 @@ function App() {
   })
 
   return (
-    <>
+    <TranscriptionProvider>
       <img src={aidio_cat} alt="AIdio Logo" className="mx-auto fixed top-0 -z-10 w-[100vw]" />
 
       <div className="bg-gradient-to-b from-background/0 via-background to-background/100 min-h-screen">
@@ -109,7 +110,7 @@ function App() {
           </p>
         </footer>
       </div>
-    </>
+    </TranscriptionProvider>
   );
 }
 
