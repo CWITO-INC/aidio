@@ -72,6 +72,10 @@ def generate_report() -> str:
     # Build styling rules based on allowed tools
     styling_rules = ["- Report must be written in full words suitable for text-to-speech."]
 
+
+    if "get_unicafe" in allowed_tools:
+        styling_rules.append("- Be specific about the unicafe offerings if available.")
+
     if "get_weather" in allowed_tools:
         styling_rules.append("- The weather temperature must be shown as an integer (no decimals).")
     

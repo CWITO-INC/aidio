@@ -23,9 +23,8 @@ function App() {
 
   return (
     <div className="flex flex-col items-start justify-end min-h-screen">
-      {/* backgroundOn === 1 && <Background2 /> */}
-      {/* backgroundOn === 2 && <Background3 /> */}
-      <Background3 />
+      <Background2 />
+      {/* <Background3 /> */}
       <div className="absolute top-4 right-4">
         <Button variant="outline" size="icon-sm" onClick={() => setBackgroundOn((backgroundOn + 1) % 3)}>
           <SparklesIcon />
